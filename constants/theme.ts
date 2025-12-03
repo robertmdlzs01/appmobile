@@ -1,41 +1,75 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
 
 import { Platform } from 'react-native';
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+export const EventuColors = {
+  magenta: '#E4006F',
+  hotPink: '#FF1E80',
+  fuchsia: '#FF4EB6',
+  violet: '#A42EFF',
+  white: '#FFFFFF',
+  black: '#000000',
+  darkBrown: '#4A2828',
+  darkRed: '#5C2E2E',
+  brown: '#6B3333',
+  darkGray: '#1A1A1A',
+  mediumGray: '#666666',
+  lightGray: '#E5E5E5',
+  veryLightGray: '#F8F8F8',
+  success: '#00C853',
+  error: '#FF1744',
+  warning: '#FFB300',
+} as const;
 
-export const Colors = {
+export const EventuGradients = {
+  primary: ['#E4006F', '#FF1E80', '#A42EFF'] as const,
+  secondary: ['#FF4EB6', '#E4006F'] as const,
+  tertiary: ['#A42EFF', '#FF1E80'] as const,
+  dark: ['#1A1A1A', '#2D2D2D'] as const,
+  darkTheme: ['#4A2828', '#5C2E2E'] as const,
+} as const;
+
+const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
+    text: EventuColors.black,
+    secondaryText: EventuColors.mediumGray,
+    background: EventuColors.white,
+    secondaryBackground: EventuColors.veryLightGray,
+    tint: EventuColors.magenta,
+    primary: EventuColors.magenta,
+    border: EventuColors.lightGray,
+    card: EventuColors.white,
+    gradient: EventuGradients.primary,
+    success: EventuColors.success,
+    error: EventuColors.error,
+    warning: EventuColors.warning,
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+    text: EventuColors.white,
+    secondaryText: '#AAAAAA',
+    background: EventuColors.darkGray,
+    secondaryBackground: '#2D2D2D',
+    tint: EventuColors.hotPink,
+    primary: EventuColors.hotPink,
+    border: '#333333',
+    card: '#2D2D2D',
+    gradient: EventuGradients.primary,
+    success: EventuColors.success,
+    error: EventuColors.error,
+    warning: EventuColors.warning,
   },
 };
 
+export default Colors;
+
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
+    
     sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
+    
     serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
+    
     rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
+    
     mono: 'ui-monospace',
   },
   default: {

@@ -9,7 +9,13 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Esta app necesita acceso a tu ubicación para mostrarte eventos cercanos a ti.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Esta app necesita acceso a tu ubicación para mostrarte eventos cercanos a ti.",
+        "NSCameraUsageDescription": "Esta app necesita acceso a tu cámara para tomar fotos de perfil.",
+        "NSPhotoLibraryUsageDescription": "Esta app necesita acceso a tu galería para seleccionar fotos de perfil."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +25,14 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "output": "static",
@@ -37,6 +50,19 @@
           "dark": {
             "backgroundColor": "#000000"
           }
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Esta app necesita acceso a tu ubicación para mostrarte eventos cercanos a ti."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Esta app necesita acceso a tu galería para seleccionar fotos de perfil.",
+          "cameraPermission": "Esta app necesita acceso a tu cámara para tomar fotos de perfil."
         }
       ]
     ],
