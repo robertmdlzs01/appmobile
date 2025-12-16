@@ -5,18 +5,20 @@ import Colors from '@/constants/theme';
 import { Radius } from '@/constants/theme-extended';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React from 'react';
 import { Pressable, ScrollView, StyleSheet } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
 
 export default function WalletScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
-  const [selectedCard, setSelectedCard] = useState('visa');
 
-  const paymentCards = [
-    { id: 'visa', type: 'VISA', name: 'Alex Parkinson', lastDigits: '8756', isPrimary: true },
-    { id: 'mastercard', type: 'Mastercard', name: 'Alex Parkinson', lastDigits: '8756', isPrimary: false },
-  ];
+  const handleManagePaymentMethods = async () => {
+    // Redirigir a la web para gestionar métodos de pago
+    await WebBrowser.openBrowserAsync('https://eventu.co/profile/payment-methods', {
+      presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
+    });
+  };
 
   return (
     <ThemedView style={styles.container}>
@@ -25,55 +27,30 @@ export default function WalletScreen() {
           <IconSymbol name="chevron.left" size={24} color={colors.text} />
         </Pressable>
         <ThemedText type="title" style={styles.headerTitle}>Métodos de Pago</ThemedText>
-        <Pressable onPress={() => router.push('/wallet/add')} style={styles.iconBtn}>
-          <IconSymbol name="plus.circle.fill" size={24} color={colors.tint} />
-        </Pressable>
+        <ThemedView style={styles.iconBtn} />
       </ThemedView>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-        <ThemedView style={styles.cardsList}>
-          {paymentCards.map((card) => {
-            const isSelected = selectedCard === card.id;
-            return (
-              <Pressable
-                key={card.id}
-                onPress={() => setSelectedCard(card.id)}
-                style={({ pressed }) => [
-                  styles.cardOption,
-                  {
-                    backgroundColor: colors.cardBackground,
-                    borderColor: isSelected ? colors.tint : colors.cardBorder,
-                    borderWidth: isSelected ? 2 : 1,
-                    opacity: pressed ? 0.8 : 1,
-                  },
-                ]}>
-                <ThemedView style={styles.cardInfo}>
-                  <ThemedView style={styles.cardHeader}>
-                    <ThemedText type="defaultSemiBold" style={styles.cardType}>
-                      {card.type}
-                    </ThemedText>
-                    {card.isPrimary && (
-                      <ThemedView style={[styles.primaryBadge, { backgroundColor: colors.secondary + '20' }]}>
-                        <ThemedText style={[styles.primaryText, { color: colors.secondary }]}>Principal</ThemedText>
-                      </ThemedView>
-                    )}
-                  </ThemedView>
-                  <ThemedText style={styles.cardName}>{card.name}</ThemedText>
-                  <ThemedText style={styles.cardDigits}>****{card.lastDigits}</ThemedText>
-                </ThemedView>
-                {isSelected ? (
-                  <IconSymbol name="checkmark" size={18} color={colors.tint} />
-                ) : (
-                  <IconSymbol name="chevron.right" size={18} color={colors.icon} />
-                )}
-              </Pressable>
-            );
-          })}
+        <ThemedView style={styles.infoCard}>
+          <IconSymbol name="info.circle.fill" size={48} color={colors.tint} />
+          <ThemedText type="title" style={styles.infoTitle}>
+            Gestiona tus métodos de pago
+          </ThemedText>
+          <ThemedText style={styles.infoText}>
+            Los métodos de pago se gestionan en nuestra plataforma web. 
+            Haz clic en el botón para abrir la configuración de métodos de pago.
+          </ThemedText>
         </ThemedView>
 
-        <Pressable style={({ pressed }) => [styles.addButton, { backgroundColor: colors.tint, opacity: pressed ? 0.8 : 1 }]} onPress={() => router.push('/wallet/add')}>
-          <IconSymbol name="plus" size={18} color="#ffffff" />
-          <ThemedText style={styles.addButtonText}>Agregar tarjeta</ThemedText>
+        <Pressable 
+          style={({ pressed }) => [
+            styles.manageButton, 
+            { backgroundColor: colors.tint, opacity: pressed ? 0.8 : 1 }
+          ]} 
+          onPress={handleManagePaymentMethods}
+        >
+          <IconSymbol name="arrow.up.right.square" size={18} color="#ffffff" />
+          <ThemedText style={styles.manageButtonText}>Abrir en la Web</ThemedText>
         </Pressable>
       </ScrollView>
     </ThemedView>
@@ -85,15 +62,25 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 16 },
   headerTitle: { fontSize: 20 },
   iconBtn: { padding: 6 },
-  cardsList: { paddingHorizontal: 20, gap: 12 },
-  cardOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderRadius: Radius.lg, marginBottom: 8 },
-  cardInfo: { flex: 1, gap: 6 },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  cardType: { fontSize: 16 },
-  primaryBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: Radius.sm },
-  primaryText: { fontSize: 11, fontWeight: '600' },
-  cardName: { fontSize: 14, opacity: 0.7 },
-  cardDigits: { fontSize: 14, opacity: 0.7 },
-  addButton: { marginHorizontal: 20, marginTop: 12, paddingVertical: 14, borderRadius: Radius.lg, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  addButtonText: { color: '#ffffff', fontWeight: '600' },
+  infoCard: { 
+    marginHorizontal: 20, 
+    marginTop: 20, 
+    padding: 32, 
+    borderRadius: Radius.lg, 
+    alignItems: 'center',
+    gap: 16,
+  },
+  infoTitle: { fontSize: 20, textAlign: 'center' },
+  infoText: { fontSize: 15, textAlign: 'center', opacity: 0.7, lineHeight: 22 },
+  manageButton: { 
+    marginHorizontal: 20, 
+    marginTop: 24, 
+    paddingVertical: 16, 
+    borderRadius: Radius.lg, 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    gap: 8 
+  },
+  manageButtonText: { color: '#ffffff', fontWeight: '600', fontSize: 16 },
 });

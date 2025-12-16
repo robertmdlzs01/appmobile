@@ -1,5 +1,6 @@
 import { ErrorState, handleApiError } from '@/components/error-handler';
 import { OptimizedImage } from '@/components/optimized-image';
+import { PressableCard } from '@/components/pressable-card';
 import { SkeletonLoader } from '@/components/skeleton-loader';
 import { EventuColors } from '@/constants/theme';
 import { Radius, Shadows } from '@/constants/theme-extended';
@@ -7,8 +8,9 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { VideoView, useVideoPlayer } from 'expo-video';
+import * as Sharing from 'expo-sharing';
 import { useState } from 'react';
-import { Dimensions, Platform, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Dimensions, Platform, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 function VideoSection({ videoUrl }: { videoUrl: string }) {
   const player = useVideoPlayer(videoUrl, (player) => {
@@ -137,30 +139,25 @@ export default function EventDetailScreen() {
   const eventId = Array.isArray(id) ? id[0] : id;
   const event = eventsData[eventId ?? '1'] || eventsData['1'];
 
-  const handleBuy = () => {
-    console.log('=== handleBuy llamado ===');
-    console.log('Event:', event);
-    console.log('Platform:', Platform.OS);
-    
-    if (!event?.id) {
-      console.error('No hay event.id');
-      return;
-    }
-    
-    const eventId = String(event.id);
-    console.log('EventId a navegar:', eventId);
-    
+  const handleViewTicket = () => {
+    // Redirigir a la pantalla de Mis Entradas
+    router.push('/(tabs)/tickets');
+  };
+
+  const handleShare = async () => {
     try {
-      console.log('Intentando navegar...');
-    router.push({
-      pathname: '/event/select-seat',
-        params: { eventId },
-    });
-      console.log('Navegación exitosa');
+      const isAvailable = await Sharing.isAvailableAsync();
+      if (isAvailable) {
+        await Sharing.shareAsync({
+          message: `¡Mira este evento increíble! ${event.name} - ${event.subtitle}. ${event.date} en ${event.location}`,
+          url: `https://eventu.co/event/${event.id}`,
+        });
+      } else {
+        Alert.alert('Error', 'La función de compartir no está disponible en este dispositivo');
+      }
     } catch (error) {
-      console.error('Error en navegación:', error);
-      
-      router.push(`/event/select-seat?eventId=${eventId}` as any);
+      console.error('Error sharing:', error);
+      Alert.alert('Error', 'No se pudo compartir el evento');
     }
   };
 
@@ -407,18 +404,28 @@ export default function EventDetailScreen() {
       </View>
 
         {}
-      <View 
-        style={styles.buyTicketContainer}
-        onStartShouldSetResponder={() => true}
-        onResponderTerminationRequest={() => false}>
-        <TouchableOpacity
-          style={styles.buyTicketButton}
-          activeOpacity={0.8}
-          onPress={handleBuy}
-          onPressIn={() => console.log('onPressIn disparado')}
-          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}>
-            <Text style={styles.buyTicketText}>Comprar Boleto</Text>
-        </TouchableOpacity>
+      <View style={styles.buyTicketContainer}>
+        <View style={styles.buttonRow}>
+          <TouchableOpacity
+            style={[styles.buyTicketButton, styles.primaryButton]}
+            activeOpacity={0.8}
+            onPress={handleViewTicket}
+            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}>
+            <View style={styles.buyTicketButtonContent}>
+              <MaterialIcons name="confirmation-number" size={20} color={EventuColors.white} />
+              <Text style={styles.buyTicketText}>Ver Boleto</Text>
+            </View>
+          </TouchableOpacity>
+          <PressableCard
+            style={[styles.shareButton, styles.secondaryButton, { borderColor: EventuColors.magenta }]}
+            onPress={handleShare}
+          >
+            <MaterialIcons name="share" size={18} color={EventuColors.magenta} />
+            <Text style={[styles.shareButtonText, { color: EventuColors.magenta }]}>
+              Compartir
+            </Text>
+          </PressableCard>
+        </View>
       </View>
     </View>
   );
@@ -672,15 +679,46 @@ const styles = StyleSheet.create({
     zIndex: 9999,
     elevation: Platform.OS === 'android' ? 1000 : 0,
   },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
   buyTicketButton: {
+    flex: 1,
     paddingVertical: 18,
     borderRadius: Radius.xl,
     alignItems: 'center',
-    backgroundColor: EventuColors.magenta,
+    justifyContent: 'center',
     ...Shadows.lg,
+  },
+  primaryButton: {
+    backgroundColor: EventuColors.magenta,
+  },
+  secondaryButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 18,
+    borderRadius: Radius.xl,
+    ...Shadows.md,
+  },
+  shareButton: {
+    flex: 1,
+  },
+  buyTicketButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   buyTicketText: {
     color: EventuColors.white,
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  shareButtonText: {
     fontSize: 18,
     fontWeight: '600',
   },

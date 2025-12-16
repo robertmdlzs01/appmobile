@@ -42,6 +42,13 @@ const Colors = {
     success: EventuColors.success,
     error: EventuColors.error,
     warning: EventuColors.warning,
+    // Additional properties for better dark mode support
+    inputBackground: '#f7f8ff',
+    inputBorder: 'rgba(99,102,241,0.15)',
+    shadow: 'rgba(63,69,135,0.18)',
+    overlay: 'rgba(0,0,0,0.5)',
+    icon: EventuColors.mediumGray,
+    placeholder: 'rgba(0,0,0,0.5)',
   },
   dark: {
     text: EventuColors.white,
@@ -56,6 +63,13 @@ const Colors = {
     success: EventuColors.success,
     error: EventuColors.error,
     warning: EventuColors.warning,
+    // Additional properties for dark mode
+    inputBackground: 'rgba(21,23,35,0.85)',
+    inputBorder: 'rgba(255,255,255,0.08)',
+    shadow: 'rgba(0,0,0,0.45)',
+    overlay: 'rgba(0,0,0,0.7)',
+    icon: '#AAAAAA',
+    placeholder: 'rgba(255,255,255,0.5)',
   },
 };
 

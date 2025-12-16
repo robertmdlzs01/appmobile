@@ -20,8 +20,8 @@ export function AnimatedCard({ children, delay = 0, index = 0, style, ...props }
   const scale = useSharedValue(0.95);
 
   useEffect(() => {
-    const totalDelay = delay + index * 50;
-    opacity.value = withDelay(totalDelay, withTiming(1, { duration: 400 }));
+    const totalDelay = delay + index * 25;
+    opacity.value = withDelay(totalDelay, withTiming(1, { duration: 200 }));
     translateY.value = withDelay(totalDelay, withSpring(0, { damping: 15, stiffness: 100 }));
     scale.value = withDelay(totalDelay, withSpring(1, { damping: 12, stiffness: 150 }));
   }, []);

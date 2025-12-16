@@ -8,6 +8,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import Colors, { EventuColors, EventuGradients } from '@/constants/theme';
 import { Radius, Shadows } from '@/constants/theme-extended';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useSafeAreaHeaderPadding } from '@/hooks/useSafeAreaInsets';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
@@ -133,6 +134,7 @@ export default function TicketsScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const { isAuthenticated } = useAuth();
+  const { paddingTop: safeAreaPaddingTop } = useSafeAreaHeaderPadding();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tickets, setTickets] = useState<TicketDisplay[]>([]);
@@ -229,7 +231,7 @@ export default function TicketsScreen() {
         }
         
         if (err.isNetworkError || err.code === 'NETWORK_ERROR') {
-          setError('No se pudo conectar al servidor. Verifica que el backend esté corriendo.');
+          setError('No se pudo cargar los tickets. Verifica tu conexión.');
         } else {
           setError(err.message || 'Error al cargar tickets');
         }
@@ -306,24 +308,33 @@ export default function TicketsScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          <FadeInView delay={100}>
-            <View style={styles.header}>
+          <FadeInView delay={50}>
+            <View style={[styles.header, { paddingTop: safeAreaPaddingTop + 16 }]}>
               <View style={styles.headerTop}>
                 <View>
                   <Text style={styles.title}>
-                    Mis Tickets
+                    Mis Entradas
                   </Text>
                   <Text style={styles.subtitle}>
-                    {filteredAndSortedTickets.length} {filteredAndSortedTickets.length === 1 ? 'ticket' : 'tickets'} {filterBy === 'all' ? 'disponible' : filterBy === 'available' ? 'disponible hoy' : 'próximo'}{filteredAndSortedTickets.length === 1 ? '' : 's'}
+                    {filteredAndSortedTickets.length} {filteredAndSortedTickets.length === 1 ? 'entrada' : 'entradas'} {filterBy === 'all' ? 'disponible' : filterBy === 'available' ? 'disponible hoy' : 'próxima'}{filteredAndSortedTickets.length === 1 ? '' : 's'}
                   </Text>
                 </View>
-                <PressableCard
-                  style={styles.filterButton}
-                  onPress={() => setShowFilters(true)}
-                  hapticFeedback={true}
-                >
-                  <MaterialIcons name="tune" size={20} color={EventuColors.magenta} />
-                </PressableCard>
+                <View style={styles.headerActions}>
+                  <PressableCard
+                    style={styles.headerButton}
+                    onPress={() => router.push('/tickets/history')}
+                    hapticFeedback={true}
+                  >
+                    <MaterialIcons name="history" size={20} color={EventuColors.magenta} />
+                  </PressableCard>
+                  <PressableCard
+                    style={styles.filterButton}
+                    onPress={() => setShowFilters(true)}
+                    hapticFeedback={true}
+                  >
+                    <MaterialIcons name="tune" size={20} color={EventuColors.magenta} />
+                  </PressableCard>
+                </View>
               </View>
               {searchQuery || filterBy !== 'all' || sortBy !== 'date-asc' ? (
                 <View style={styles.activeFilters}>
@@ -377,7 +388,7 @@ export default function TicketsScreen() {
               ))}
             </View>
           ) : error && tickets.length === 0 ? (
-            <FadeInView delay={200}>
+            <FadeInView delay={100}>
               <View style={styles.emptyState}>
                 <MaterialIcons name="error-outline" size={64} color="rgba(255,255,255,0.3)" />
                 <Text style={styles.emptyText}>
@@ -437,14 +448,14 @@ export default function TicketsScreen() {
               </View>
             </FadeInView>
           ) : tickets.length === 0 ? (
-            <FadeInView delay={200}>
+            <FadeInView delay={100}>
               <View style={styles.emptyState}>
                 <MaterialIcons name="confirmation-number" size={64} color="rgba(255,255,255,0.3)" />
                 <Text style={styles.emptyText}>
-                  No tienes tickets aún
+                  No tienes entradas aún
                 </Text>
                 <Text style={styles.emptySubtext}>
-                  Explora eventos y compra tus primeros boletos
+                  Si ya compraste en nuestros canales autorizados, confirma tus datos para ver tus entradas al instante
                 </Text>
                 <PressableCard
                   style={styles.exploreButton}
@@ -471,7 +482,7 @@ export default function TicketsScreen() {
                 const isAvailable = isEventDay(ticket.date);
                 
                 return (
-                  <AnimatedCard key={ticket.id} index={index} delay={index * 100}>
+                  <AnimatedCard key={ticket.id} index={index} delay={index * 50}>
                     <PressableCard
                       style={[
                         styles.ticketCard,
@@ -570,19 +581,12 @@ export default function TicketsScreen() {
                               borderColor: EventuColors.magenta,
                             },
                           ]}
-                          onPress={async (e) => {
+                          onPress={(e) => {
                             e.stopPropagation();
-                            try {
-                              await Share.share({
-                                message: `Ticket para ${ticket.eventName} el ${ticket.dateDisplay} en ${ticket.location} (${ticket.quantity} boleto(s)).`,
-                                title: 'Compartir ticket',
-                              });
-                            } catch (err) {
-                              
-                            }
+                            router.push(`/tickets/transfer?ticketId=${ticket.id}`);
                           }}
                         >
-                          <MaterialIcons name="share" size={18} color={EventuColors.magenta} />
+                          <MaterialIcons name="swap-horiz" size={18} color={EventuColors.magenta} />
                           <Text style={[styles.actionButtonText, { color: EventuColors.magenta }]}>
                             Transferir
                           </Text>
@@ -720,7 +724,6 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 20,
-    paddingTop: 60,
     paddingBottom: 24,
   },
   title: {
@@ -861,6 +864,19 @@ const styles = StyleSheet.create({
   skeletonContainer: {
     paddingHorizontal: 20,
     paddingTop: 20,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  headerButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: EventuColors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadows.sm,
   },
   headerTop: {
     flexDirection: 'row',

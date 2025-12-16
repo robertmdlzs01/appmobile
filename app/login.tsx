@@ -84,10 +84,10 @@ export default function LoginScreen() {
                 <IconSymbol name="chevron.left" size={20} color="#ffffff" />
                 </Pressable>
               <ThemedText type="title" style={styles.heroTitle}>
-                Bienvenido de vuelta
+                Bienvenido a Eventu.co
                 </ThemedText>
               <ThemedText style={styles.heroSubtitle}>
-                Ingresa tus credenciales para continuar disfrutando de la experiencia.
+                Ingresa tus credenciales para ver todas tus entradas al instante. Si ya compraste en nuestros canales autorizados, confirma tus datos.
                 </ThemedText>
               </View>
 
@@ -121,7 +121,10 @@ export default function LoginScreen() {
                 onRightIconPress={() => setShowPassword(!showPassword)}
                 containerStyle={styles.formField}
               />
-                <Pressable style={styles.forgotLink}>
+                <Pressable 
+                  style={styles.forgotLink}
+                  onPress={() => router.push('/auth/new-password')}
+                >
                   <ThemedText style={[styles.forgotLinkText, { color: colors.tint }]}>
                       ¿Olvidaste tu contraseña?
                     </ThemedText>

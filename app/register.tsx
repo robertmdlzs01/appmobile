@@ -78,7 +78,7 @@ export default function RegisterScreen() {
               Crear Cuenta
             </ThemedText>
             <ThemedText style={styles.subtitle}>
-              Únete a Eventu y descubre eventos increíbles
+              Únete a Eventu.co y almacena tus entradas. Si ya compraste en nuestros canales autorizados, confirma tus datos para ver tus entradas al instante.
             </ThemedText>
           </ThemedView>
 
@@ -156,7 +156,7 @@ export default function RegisterScreen() {
                   styles.checkbox,
                   {
                     backgroundColor: acceptTerms ? colors.tint : 'transparent',
-                    borderColor: acceptTerms ? colors.tint : colors.icon,
+                    borderColor: acceptTerms ? colors.tint : colors.border,
                   },
                 ]}>
                 {acceptTerms && <IconSymbol name="checkmark" size={14} color="#ffffff" />}

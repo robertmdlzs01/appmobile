@@ -13,7 +13,7 @@ interface FadeInViewProps extends ViewProps {
   duration?: number;
 }
 
-export function FadeInView({ children, delay = 0, duration = 400, style, ...props }: FadeInViewProps) {
+export function FadeInView({ children, delay = 0, duration = 200, style, ...props }: FadeInViewProps) {
   const opacity = useSharedValue(0);
 
   useEffect(() => {

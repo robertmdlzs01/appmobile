@@ -1,175 +1,83 @@
-import compression from 'compression';
-import cors from 'cors';
 import dotenv from 'dotenv';
 import express, { Express } from 'express';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
-import http from 'http';
-import { connectDatabase } from './config/database';
-import { getWordPressConfig } from './config/wordpress';
-import { EventsController } from './controllers/events.controller';
-import { errorHandler, notFoundHandler } from './middleware/error.middleware';
-import Event from './models/Event';
-import { createEventsRouter } from './routes/events.routes';
-import { PollingService } from './services/polling.service';
-import { SyncService } from './services/sync.service';
-import { WebSocketService } from './services/websocket.service';
-import { WordPressService } from './services/wordpress.service';
-import logger from './utils/logger';
+import { testConnection } from './config/database';
+import { corsMiddleware } from './middleware/cors';
+import { errorHandler, notFoundHandler } from './middleware/errorHandler';
+
+// Importar rutas
+import authRouter from './routes/auth';
+import eventsRouter from './routes/events';
+import ticketsRouter from './routes/tickets';
+import usersRouter from './routes/users';
 
 dotenv.config();
 
 const app: Express = express();
-const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
-let wordpressService: WordPressService;
-let syncService: SyncService;
-let pollingService: PollingService;
-let webSocketService: WebSocketService;
-
+// Middleware de seguridad
 app.use(helmet());
-app.use(compression());
 
-const corsOptions = {
-  origin: process.env.CORS_ORIGIN?.split(',').map(origin => origin.trim()) || '*',
-  credentials: true,
-  optionsSuccessStatus: 200,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-webhook-secret'],
-};
-app.use(cors(corsOptions));
+// CORS
+app.use(corsMiddleware);
 
+// Rate limiting
 const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10),
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10),
-  message: 'Demasiadas solicitudes desde esta IP, intenta de nuevo más tarde.',
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10), // 15 minutos
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10), // 100 requests
+  message: {
+    success: false,
+    message: 'Demasiadas solicitudes desde esta IP, intenta de nuevo más tarde.',
+  },
 });
+
 app.use('/api/', limiter);
 
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Body parser
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-app.get('/health', (req, res) => {
-  res.json({
-    success: true,
-    status: 'ok',
+// Health check
+app.get('/health', async (req, res) => {
+  const dbConnected = await testConnection();
+  res.status(dbConnected ? 200 : 503).json({
+    success: dbConnected,
+    message: dbConnected ? 'Servidor funcionando correctamente' : 'Error de conexión a la base de datos',
     timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
   });
 });
 
-async function initializeServices(): Promise<void> {
-  try {
-    await connectDatabase();
+// Rutas API
+app.use('/api/auth', authRouter);
+app.use('/api/users', usersRouter);
+app.use('/api/events', eventsRouter);
+app.use('/api/tickets', ticketsRouter);
 
-    const wpConfig = getWordPressConfig();
-    wordpressService = new WordPressService(wpConfig);
-
-    const wpConnected = await wordpressService.testConnection();
-    if (!wpConnected) {
-      logger.warn('⚠️ No se pudo verificar conexión con WordPress, continuando...');
-    }
-
-    syncService = new SyncService(wordpressService);
-    pollingService = new PollingService(syncService);
-    webSocketService = new WebSocketService();
-
-    webSocketService.initialize(server);
-
-    const eventsController = new EventsController(syncService);
-    const eventsRouter = createEventsRouter(eventsController);
-
-    app.use('/api/events', eventsRouter);
-
-    const originalSyncEvent = syncService.syncEvent.bind(syncService);
-    syncService.syncEvent = async (eventData) => {
-      const result = await originalSyncEvent(eventData);
-      
-      try {
-        if (result.created || result.updated) {
-          const event = await Event.findOne({
-            wordpressId: parseInt(eventData.id),
-          }).lean();
-          if (event) {
-            if (result.created) {
-              webSocketService.notifyEventCreated(event);
-            } else {
-              webSocketService.notifyEventUpdated(event);
-            }
-          }
-        }
-      } catch (error) {
-        logger.error('Error al notificar evento vía WebSocket:', error);
-      }
-      
-      return result;
-    };
-
-    pollingService.start();
-
-    logger.info('✅ Servicios inicializados correctamente');
-  } catch (error) {
-    logger.error('❌ Error al inicializar servicios:', error);
-    throw error;
-  }
-}
-
+// Manejo de errores
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-async function startServer(): Promise<void> {
+// Iniciar servidor
+const startServer = async () => {
   try {
-    await initializeServices();
+    // Probar conexión a la base de datos
+    await testConnection();
 
-    server.listen(PORT, '0.0.0.0', () => {
-      const apiUrl = process.env.API_BASE_URL || `http://localhost:${PORT}`;
-      logger.info(`🚀 Servidor ejecutándose en puerto ${PORT}`);
-      logger.info(`📡 Ambiente: ${process.env.NODE_ENV || 'development'}`);
-      logger.info(`🔗 API disponible en: ${apiUrl}/api`);
-      logger.info(`🌐 CORS configurado para: ${process.env.CORS_ORIGIN || '*'}`);
-      logger.info(`📋 Endpoints disponibles:`);
-      logger.info(`   GET  ${apiUrl}/api/events`);
-      logger.info(`   GET  ${apiUrl}/api/events/:id`);
-      logger.info(`   GET  ${apiUrl}/api/events/featured`);
-      logger.info(`   POST ${apiUrl}/api/events/sync`);
-      logger.info(`   GET  ${apiUrl}/health`);
+    app.listen(PORT, () => {
+      console.log(`🚀 Servidor ejecutándose en puerto ${PORT}`);
+      console.log(`📡 Ambiente: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+      console.log(`📚 API: http://localhost:${PORT}/api`);
     });
   } catch (error) {
-    logger.error('❌ Error al iniciar servidor:', error);
+    console.error('❌ Error al iniciar el servidor:', error);
     process.exit(1);
   }
-}
-
-process.on('SIGTERM', async () => {
-  logger.info('SIGTERM recibido, cerrando servidor...');
-  pollingService?.stop();
-  webSocketService?.close();
-  server.close(() => {
-    logger.info('Servidor cerrado');
-    process.exit(0);
-  });
-});
-
-process.on('SIGINT', async () => {
-  logger.info('SIGINT recibido, cerrando servidor...');
-  pollingService?.stop();
-  webSocketService?.close();
-  server.close(() => {
-    logger.info('Servidor cerrado');
-    process.exit(0);
-  });
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  logger.error('Unhandled Rejection:', { reason, promise });
-});
-
-process.on('uncaughtException', (error) => {
-  logger.error('Uncaught Exception:', error);
-  process.exit(1);
-});
+};
 
 startServer();
 
 export default app;
+

@@ -1,12 +1,15 @@
-import { EventuColors } from '@/constants/theme';
-import { Radius, Shadows } from '@/constants/theme-extended';
 import { BookingProgress } from '@/components/booking-progress';
 import { ErrorBanner, createError, handleApiError } from '@/components/error-handler';
-import { router, useLocalSearchParams } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
+import { EventuColors } from '@/constants/theme';
+import { Shadows } from '@/constants/theme-extended';
+import { useAuth } from '@/contexts/AuthContext';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { router, useLocalSearchParams } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import { useState } from 'react';
 import {
+  ActivityIndicator,
   Platform,
   Pressable,
   SafeAreaView,
@@ -14,11 +17,11 @@ import {
   StyleSheet,
   Text,
   View,
-  ActivityIndicator,
 } from 'react-native';
 
 export default function PaymentMethodScreen() {
   const params = useLocalSearchParams();
+  const { user } = useAuth();
   const [selectedCard, setSelectedCard] = useState('visa');
   const [error, setError] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -70,60 +73,47 @@ export default function PaymentMethodScreen() {
       return;
     }
 
-    const purchaseId = Array.isArray(params.purchaseId) ? params.purchaseId[0] : params.purchaseId;
-    
-    if (!purchaseId) {
-      setError(createError('validation', 'ID de compra no encontrado. Por favor vuelve a intentar.'));
+    if (!user) {
+      setError(createError('validation', 'Debes iniciar sesión para realizar una compra'));
       return;
     }
+
+    const eventId = Array.isArray(params.eventId) ? params.eventId[0] : params.eventId || '1';
+    const ticketType = Array.isArray(params.ticketType) ? params.ticketType[0] : params.ticketType || 'General';
+    const numberOfTickets = parseInt(
+      (Array.isArray(params.tickets) ? params.tickets[0] : params.tickets) || '1',
+      10
+    );
 
     try {
       setLoading(true);
       setError(null);
 
-      const paymentResult = { success: true, purchaseId, ticketIds: ['mock-ticket-1'], orderNumber: `ORD-${Date.now()}` };
+      // Construir URL de la web con los parámetros de compra
+      const webUrl = new URL('https://eventu.co/booking');
+      webUrl.searchParams.set('eventId', eventId);
+      webUrl.searchParams.set('ticketType', ticketType);
+      webUrl.searchParams.set('tickets', numberOfTickets.toString());
+      webUrl.searchParams.set('totalAmount', totalAmount.toString());
+      webUrl.searchParams.set('eventName', eventName);
+      webUrl.searchParams.set('paymentMethod', selectedCard);
+      webUrl.searchParams.set('userId', user.id);
+      webUrl.searchParams.set('userEmail', user.email);
+      webUrl.searchParams.set('userName', user.name);
+      webUrl.searchParams.set('source', 'app');
 
-      if (paymentResult.success) {
-        router.push({
-          pathname: '/booking/confirmation',
-          params: {
-            ...params,
-            purchaseId: paymentResult.purchaseId,
-            ticketIds: paymentResult.ticketIds.join(','),
-            orderNumber: paymentResult.orderNumber,
-            totalAmount: totalAmount.toString(),
-            eventName: eventName,
-          },
-        });
-      } else {
-        
-        router.push({
-          pathname: '/booking/payment-rejected',
-          params: {
-            ...params,
-            totalAmount: totalAmount.toString(),
-            eventName: eventName,
-            errorReason: 'El pago no pudo ser procesado',
-          },
-        });
-      }
+      // Abrir la web en el navegador
+      await WebBrowser.openBrowserAsync(webUrl.toString(), {
+        presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
+        enableBarCollapsing: false,
+      });
+
+      // Nota: Después de completar la compra en la web, el usuario volverá a la app
+      // Puedes configurar un deep link o webhook para manejar el retorno
     } catch (err: any) {
-      console.error('Error processing payment:', err);
-      
-      if (err.code === 'PAYMENT_FAILED' || err.status === 402 || err.code === 'INSUFFICIENT_FUNDS') {
-        router.push({
-          pathname: '/booking/payment-rejected',
-          params: {
-            ...params,
-            totalAmount: totalAmount.toString(),
-            eventName: eventName,
-            errorReason: err.message || 'El pago fue rechazado',
-          },
-        });
-      } else {
-        const appError = handleApiError(err);
-        setError(appError);
-      }
+      console.error('Error al redirigir a la web:', err);
+      const appError = handleApiError(err);
+      setError(appError);
     } finally {
       setLoading(false);
     }
@@ -269,10 +259,10 @@ export default function PaymentMethodScreen() {
             {loading ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="small" color={EventuColors.white} />
-                <Text style={styles.buttonText}>Procesando pago...</Text>
+                <Text style={styles.buttonText}>Redirigiendo...</Text>
               </View>
             ) : (
-              <Text style={styles.buttonText}>Comprar Boleto</Text>
+              <Text style={styles.buttonText}>Comprar en la Web</Text>
             )}
           </LinearGradient>
         </Pressable>

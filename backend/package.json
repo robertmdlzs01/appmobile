@@ -1,54 +1,41 @@
 {
   "name": "eventu-backend",
   "version": "1.0.0",
-  "description": "Backend intermediario para sincronizar eventos de WordPress con app React Native",
+  "description": "Backend API para Eventu - Conectado a WordPress/MySQL en Plesk",
   "main": "dist/server.js",
   "scripts": {
     "start": "node dist/server.js",
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
-    "lint": "eslint src/**/*.ts",
-    "test": "jest",
-    "sync-events": "ts-node scripts/sync-events.ts",
-    "validate": "ts-node scripts/validate-integration.ts"
+    "watch": "tsc --watch",
+    "sync:wordpress": "ts-node scripts/sync-wordpress.ts"
   },
   "keywords": [
-    "wordpress",
-    "react-native",
+    "eventu",
     "api",
-    "sync"
+    "express",
+    "mysql"
   ],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.18.2",
-    "axios": "^1.6.2",
-    "jsonwebtoken": "^9.0.2",
-    "bcryptjs": "^2.4.3",
-    "mongoose": "^8.0.3",
-    "socket.io": "^4.5.4",
-    "dotenv": "^16.3.1",
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
-    "helmet": "^7.1.0",
-    "express-rate-limit": "^7.1.5",
-    "winston": "^3.11.0",
-    "express-validator": "^7.0.1",
-    "node-cron": "^3.0.3",
-    "compression": "^1.7.4"
+    "dotenv": "^17.2.3",
+    "express": "^4.22.1",
+    "express-rate-limit": "^7.5.1",
+    "express-validator": "^7.2.0",
+    "helmet": "^7.2.0",
+    "jsonwebtoken": "^9.0.3",
+    "mysql2": "^3.6.5"
   },
   "devDependencies": {
-    "@types/express": "^4.17.21",
-    "@types/node": "^20.10.5",
-    "@types/jsonwebtoken": "^9.0.5",
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",
-    "@types/compression": "^1.7.5",
-    "@types/node-cron": "^3.0.11",
-    "typescript": "^5.3.3",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^25.0.2",
     "ts-node-dev": "^2.0.0",
-    "@typescript-eslint/eslint-plugin": "^6.15.0",
-    "@typescript-eslint/parser": "^6.15.0",
-    "eslint": "^8.56.0"
+    "typescript": "^5.7.3"
   }
 }
-

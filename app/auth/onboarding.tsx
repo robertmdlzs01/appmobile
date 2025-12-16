@@ -18,23 +18,23 @@ const { width } = Dimensions.get('window');
 const slides = [
   {
     id: '1',
-    title: 'Descubre Eventos',
-    description: 'Encuentra eventos increíbles cerca de ti',
-    emoji: '🎉',
+    title: 'Almacena tus Entradas',
+    description: 'Guarda todas tus entradas en un solo lugar',
+    emoji: '🎫',
     gradient: [EventuColors.violet + 'AA', EventuColors.magenta + 'AA'], 
   },
   {
     id: '2',
-    title: 'Reserva Entradas',
-    description: 'Asegura tu lugar con reservas fáciles',
-    emoji: '🎫',
+    title: 'Visualiza al Instante',
+    description: 'Accede a tus entradas en cualquier momento',
+    emoji: '📱',
     gradient: [EventuColors.hotPink + 'AA', EventuColors.fuchsia + 'AA'], 
   },
   {
     id: '3',
-    title: 'Disfruta la Experiencia',
-    description: 'Crea recuerdos inolvidables',
-    emoji: '⭐',
+    title: 'Confirma tus Datos',
+    description: 'Si ya compraste, solo confirma tus datos para ver tus entradas',
+    emoji: '✅',
     gradient: [EventuColors.magenta + 'AA', EventuColors.violet + 'AA'], 
   },
 ];

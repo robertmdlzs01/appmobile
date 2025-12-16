@@ -1,42 +1,34 @@
-import mongoose from 'mongoose';
-import logger from '../utils/logger';
+import mysql from 'mysql2/promise';
+import dotenv from 'dotenv';
 
-export const connectDatabase = async (): Promise<void> => {
+dotenv.config();
+
+const pool = mysql.createPool({
+  host: process.env.DB_HOST || 'localhost',
+  port: parseInt(process.env.DB_PORT || '3306', 10),
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || 'eventu_db',
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 0,
+});
+
+// Función para probar la conexión
+export const testConnection = async (): Promise<boolean> => {
   try {
-    const mongoUri = process.env.MONGODB_URI;
-    
-    if (!mongoUri) {
-      throw new Error('MONGODB_URI no está definida en las variables de entorno');
-    }
-
-    await mongoose.connect(mongoUri);
-    logger.info('✅ Conectado a MongoDB exitosamente');
-
-    mongoose.connection.on('error', (err) => {
-      logger.error('❌ Error de conexión a MongoDB:', err);
-    });
-
-    mongoose.connection.on('disconnected', () => {
-      logger.warn('⚠️ MongoDB desconectado');
-    });
-
-    process.on('SIGINT', async () => {
-      await mongoose.connection.close();
-      logger.info('Conexión a MongoDB cerrada por terminación de la aplicación');
-      process.exit(0);
-    });
+    const connection = await pool.getConnection();
+    await connection.ping();
+    connection.release();
+    console.log('✅ Conexión a MySQL establecida correctamente');
+    return true;
   } catch (error) {
-    logger.error('❌ Error al conectar a MongoDB:', error);
-    throw error;
+    console.error('❌ Error al conectar con MySQL:', error);
+    return false;
   }
 };
 
-export const disconnectDatabase = async (): Promise<void> => {
-  try {
-    await mongoose.connection.close();
-    logger.info('Desconectado de MongoDB');
-  } catch (error) {
-    logger.error('Error al desconectar de MongoDB:', error);
-    throw error;
-  }
-};
+export default pool;
+

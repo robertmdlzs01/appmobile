@@ -23,6 +23,9 @@ export default function ConfirmationScreen() {
   });
 
   const ticketIds = Array.isArray(params.ticketIds) ? params.ticketIds[0] : params.ticketIds;
+  const siigoInvoiceNumber = Array.isArray(params.siigoInvoiceNumber) 
+    ? params.siigoInvoiceNumber[0] 
+    : params.siigoInvoiceNumber;
 
   const handleBackToHome = () => {
     router.replace('/(tabs)');
@@ -87,6 +90,15 @@ export default function ConfirmationScreen() {
             <Text style={styles.summaryLabel}>Total pagado</Text>
             <Text style={styles.summaryTotal}>${totalAmount.toLocaleString('es-CO')}</Text>
           </View>
+          {siigoInvoiceNumber && (
+            <>
+              <View style={styles.divider} />
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Factura Electrónica</Text>
+                <Text style={styles.summaryValue}>{siigoInvoiceNumber}</Text>
+              </View>
+            </>
+          )}
         </View>
 
         {}

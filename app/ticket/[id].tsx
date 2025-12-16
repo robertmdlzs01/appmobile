@@ -1,16 +1,21 @@
 import { EventuColors } from '@/constants/theme';
 import { Shadows } from '@/constants/theme-extended';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTicketValidation } from '@/hooks/useTicketValidation';
 import { mockTickets } from '@/services/mockTickets';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import * as Crypto from 'expo-crypto';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as ScreenCapture from 'expo-screen-capture';
+import { useScreenCapture } from '@/hooks/useScreenCapture';
 import * as Sharing from 'expo-sharing';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Dimensions, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import QRCode from 'react-native-qrcode-svg';
+import { ActivityIndicator, Alert, Animated, Dimensions, Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { QRCodeDisplay } from '@/components/qr-code-display';
+import { BarcodeDisplay } from '@/components/barcode-display';
+import { generateQRPayload, QRPayload } from '@/utils/qrCode';
+import { generateBarcodeToken } from '@/utils/barcode';
 
 interface Ticket {
   id: string;
@@ -69,13 +74,21 @@ export default function TicketDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [qrToken, setQrToken] = useState<string | null>(null);
+  const [barcodeToken, setBarcodeToken] = useState<string | null>(null);
   const [qrLoading, setQrLoading] = useState(false);
   const [tokens, setTokens] = useState<string[]>([]);
   const [expiresIn, setExpiresIn] = useState<number>(15);
   const [timeRemaining, setTimeRemaining] = useState<number>(15);
+  const [isQRStatic, setIsQRStatic] = useState(false);
   const [currentTicketIndex, setCurrentTicketIndex] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
   const qrRefreshIntervalRef = useRef<number | null>(null);
+  
+  // Validación en tiempo real
+  const isAvailable = ticket ? isEventDay(ticket.date) : false;
+  const { validation, loading: validationLoading } = useTicketValidation(ticketId, isAvailable);
+  const validationAnimation = useRef(new Animated.Value(0)).current;
+  const [wasValidated, setWasValidated] = useState(false);
 
   useEffect(() => {
     const loadTicket = async () => {
@@ -136,36 +149,68 @@ export default function TicketDetailScreen() {
     loadTicket();
   }, [ticketId, isAuthenticated]);
 
-  const isAvailable = ticket ? isEventDay(ticket.date) : false;
-  
+  // Animación cuando el boleto es validado y detener regeneración del QR
   useEffect(() => {
-    if (ticket && !isAvailable) {
-      
+    if (validation?.validated && !wasValidated) {
+      setWasValidated(true);
+      setIsQRStatic(true);
+      // Detener cualquier intervalo activo
+      if (qrRefreshIntervalRef.current) {
+        clearInterval(qrRefreshIntervalRef.current);
+        qrRefreshIntervalRef.current = null;
+      }
+      Animated.sequence([
+        Animated.timing(validationAnimation, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(validationAnimation, {
+          toValue: 0.8,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
     }
-  }, [ticket, isAvailable]);
+  }, [validation?.validated, wasValidated]);
 
   useEffect(() => {
     const generateQR = async (force = false) => {
       if (!ticket || !isAvailable) return;
+      // Si el boleto ya está validado, no regenerar el QR
+      if (validation?.validated) return;
       if (!force && qrToken && timeRemaining > 0) return;
 
       try {
         setQrLoading(true);
         
+        // Generar datos mejorados para el QR
         const qrData = JSON.stringify({
           ticketId: ticket.id,
           eventId: ticket.eventId,
           eventName: ticket.eventName,
           date: ticket.date,
           timestamp: Date.now(),
+          version: '1.0',
         });
         
+        // Generar hash seguro del QR
         const qrHash = await Crypto.digestStringAsync(
           Crypto.CryptoDigestAlgorithm.SHA256,
           qrData
         );
         
+        // Generar token para código de barras (mismo sistema de seguridad)
+        const barcodeHash = await generateBarcodeToken(
+          ticket.id,
+          ticket.eventId,
+          ticket.eventName,
+          ticket.date,
+          Date.now()
+        );
+        
         setQrToken(qrHash);
+        setBarcodeToken(barcodeHash);
         setTokens([qrHash]);
         setTimeRemaining(expiresIn);
         setError(null);
@@ -179,7 +224,7 @@ export default function TicketDetailScreen() {
       }
     };
 
-    if (isAvailable) {
+    if (isAvailable && !validation?.validated) {
       generateQR(true);
     }
 
@@ -188,9 +233,18 @@ export default function TicketDetailScreen() {
         clearInterval(qrRefreshIntervalRef.current);
       }
     };
-  }, [ticket, isAvailable]);
+  }, [ticket, isAvailable, validation?.validated]);
 
   useEffect(() => {
+    // Si el boleto está validado, detener la regeneración del QR
+    if (validation?.validated) {
+      if (qrRefreshIntervalRef.current) {
+        clearInterval(qrRefreshIntervalRef.current);
+        qrRefreshIntervalRef.current = null;
+      }
+      return;
+    }
+
     if (!isAvailable || !ticket) return;
 
     if (qrRefreshIntervalRef.current) {
@@ -198,9 +252,19 @@ export default function TicketDetailScreen() {
     }
 
     const interval = setInterval(async () => {
+      // Verificar nuevamente si está validado antes de regenerar
+      if (validation?.validated) {
+        clearInterval(interval);
+        qrRefreshIntervalRef.current = null;
+        return;
+      }
+
       setTimeRemaining((prev) => {
         if (prev <= 1) {
           const generateNewQR = async () => {
+            // Verificar una vez más antes de generar
+            if (validation?.validated) return;
+            
             setQrLoading(true);
             const qrData = JSON.stringify({
               ticketId: ticket.id,
@@ -208,6 +272,7 @@ export default function TicketDetailScreen() {
               eventName: ticket.eventName,
               date: ticket.date,
               timestamp: Date.now(),
+              version: '1.0',
             });
             
             const qrHash = await Crypto.digestStringAsync(
@@ -215,7 +280,17 @@ export default function TicketDetailScreen() {
               qrData
             );
             
+            // Regenerar token de código de barras también
+            const barcodeHash = await generateBarcodeToken(
+              ticket.id,
+              ticket.eventId,
+              ticket.eventName,
+              ticket.date,
+              Date.now()
+            );
+            
             setQrToken(qrHash);
+            setBarcodeToken(barcodeHash);
             setTokens([qrHash]);
             setQrLoading(false);
           };
@@ -233,7 +308,7 @@ export default function TicketDetailScreen() {
         clearInterval(qrRefreshIntervalRef.current);
       }
     };
-  }, [isAvailable, ticket, expiresIn]);
+  }, [isAvailable, ticket, expiresIn, validation?.validated]);
 
   const ticketQuantity = ticket?.quantity || 1;
   
@@ -248,17 +323,24 @@ export default function TicketDetailScreen() {
     }));
   }, [ticket, ticketQuantity]);
 
-  ScreenCapture.usePreventScreenCapture();
+  // Bloquear capturas de pantalla (el hook global ya lo maneja, pero lo reforzamos aquí)
+  // Esto asegura que incluso si el usuario navega directamente a esta pantalla, esté protegida
+  useScreenCapture(true);
 
-  const generateQRPayload = (ticketIndex: number) => {
-    if (!qrToken || !ticket) return '';
+  const getQRPayload = (ticketIndex: number): QRPayload | null => {
+    if (!qrToken || !ticket) return null;
     
-    return JSON.stringify({
-      type: 'eventu_ticket',
-      ticketId: ticket.id,
-      token: qrToken,
-      exp: Math.floor(Date.now() / 1000) + expiresIn,
-    });
+    return generateQRPayload(
+      ticket.id,
+      qrToken,
+      expiresIn,
+      validation?.validated || false,
+      {
+        eventId: ticket.eventId,
+        eventName: ticket.eventName,
+        date: ticket.date,
+      }
+    );
   };
 
   const handleScroll = (event: any) => {
@@ -292,6 +374,25 @@ export default function TicketDetailScreen() {
     }
   };
 
+  const formatValidationTime = (dateStr: string) => {
+    try {
+      const date = new Date(dateStr);
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffMins = Math.floor(diffMs / 60000);
+      
+      if (diffMins < 1) return 'Hace unos segundos';
+      if (diffMins === 1) return 'Hace 1 minuto';
+      if (diffMins < 60) return `Hace ${diffMins} minutos`;
+      
+      const diffHours = Math.floor(diffMins / 60);
+      if (diffHours === 1) return 'Hace 1 hora';
+      return `Hace ${diffHours} horas`;
+    } catch {
+      return dateStr;
+    }
+  };
+
   const handleShareImage = async () => {
     if (!ticket) return;
     
@@ -308,94 +409,234 @@ export default function TicketDetailScreen() {
     }
   };
 
-  const renderTicket = (ticketItem: any, index: number) => (
-    <View key={ticketItem.uniqueId} style={styles.ticketCardWrapper}>
-      <View style={styles.ticketCard}>
-        {}
-        <View style={styles.imageContainer}>
-          <View style={styles.artistImageWrapper}>
-            <View style={styles.artistImage}>
-              <Image 
-                source={ticketItem.image} 
-                style={styles.artistImageContent}
-                resizeMode="cover"
-              />
-            </View>
-          </View>
-        </View>
-
-        {}
-        <View style={styles.ticketInfo}>
-          <Text style={styles.eventTitle}>{ticketItem.eventName}</Text>
-          {ticketQuantity > 1 && (
-            <Text style={styles.ticketNumber}>Boleto {ticketItem.ticketNumber} de {ticketQuantity}</Text>
+  const renderTicket = (ticketItem: any, index: number) => {
+    const isValidated = validation?.validated || false;
+    const isScanned = validation?.validationStatus === 'scanned' || validation?.validationStatus === 'validated';
+    const validationStatus = validation?.validationStatus || 'pending';
+    
+    return (
+      <View key={ticketItem.uniqueId} style={styles.ticketCardWrapper}>
+        <Animated.View 
+          style={[
+            styles.ticketCard,
+            isValidated && {
+              borderColor: '#10B981',
+              borderWidth: 2,
+              transform: [{
+                scale: validationAnimation.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [1, 1.02],
+                }),
+              }],
+            },
+            isScanned && !isValidated && {
+              borderColor: '#F59E0B',
+              borderWidth: 2,
+            },
+          ]}
+        >
+          {/* Badge de validación */}
+          {isValidated && (
+            <Animated.View 
+              style={[
+                styles.validationBadge,
+                {
+                  opacity: validationAnimation,
+                  transform: [{
+                    scale: validationAnimation.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.8, 1],
+                    }),
+                  }],
+                },
+              ]}
+            >
+              <MaterialIcons name="check-circle" size={24} color="#10B981" />
+              <Text style={styles.validationBadgeText}>Validado</Text>
+            </Animated.View>
           )}
-          <View style={styles.dateTimeRow}>
-            <Text style={styles.eventDate}>{formatTicketDate(ticketItem.date)}</Text>
-            <Text style={styles.eventTime}>{formatTicketTime(ticketItem.time)}</Text>
-          </View>
-
-          {}
-          <View style={styles.detailsGrid}>
-            <View style={styles.detailRow}>
-              <View style={styles.detailItem}>
-                <Text style={styles.detailLabel}>Lugar</Text>
-                <Text style={styles.detailValue}>{ticketItem.venue}</Text>
-              </View>
-              <View style={styles.detailItem}>
-                <Text style={styles.detailLabel}>Asiento</Text>
-                <Text style={styles.detailValue}>{ticketItem.seat}</Text>
-              </View>
+          
+          {isScanned && !isValidated && (
+            <View style={styles.scannedBadge}>
+              <MaterialIcons name="qr-code-scanner" size={20} color="#F59E0B" />
+              <Text style={styles.scannedBadgeText}>Escaneado</Text>
             </View>
-          </View>
+          )}
 
-          {}
-          {isAvailable ? (
-            <View style={styles.qrContainer}>
-              {qrLoading ? (
-                <View style={styles.unavailableMessage}>
-                  <ActivityIndicator size="large" color={EventuColors.magenta} />
-                  <Text style={styles.unavailableText}>
-                    Generando código QR...
-                  </Text>
-                </View>
-              ) : qrToken ? (
-                <QRCode
-                  value={generateQRPayload(index)}
-                  size={160}
-                  color="#000"
-                  backgroundColor="#fff"
+          {/* Imagen del evento */}
+          <View style={styles.imageContainer}>
+            <View style={styles.artistImageWrapper}>
+              <View style={styles.artistImage}>
+                <Image 
+                  source={ticketItem.image} 
+                  style={styles.artistImageContent}
+                  resizeMode="cover"
                 />
-              ) : (
-                <View style={styles.unavailableMessage}>
-                  <MaterialIcons name="error-outline" size={48} color={EventuColors.mediumGray} />
-                  <Text style={styles.unavailableText}>
-                    No se pudo generar el código QR
-                  </Text>
-                </View>
-              )}
-            </View>
-          ) : (
-            <View style={styles.qrContainer}>
-              <View style={styles.unavailableMessage}>
-                <MaterialIcons name="schedule" size={48} color={EventuColors.mediumGray} />
-                <Text style={styles.unavailableText}>
-                  Disponible el día del evento
-                </Text>
-                <Text style={styles.unavailableSubtext}>
-                  {formatTicketDate(ticketItem.date)}
-                </Text>
               </View>
             </View>
-          )}
-        </View>
+          </View>
 
-        {}
-        <View style={styles.circleLeft} />
-        <View style={styles.circleRight} />
+          {/* Información del ticket */}
+          <View style={styles.ticketInfo}>
+            <Text style={styles.eventTitle}>{ticketItem.eventName}</Text>
+            {ticketQuantity > 1 && (
+              <Text style={styles.ticketNumber}>Boleto {ticketItem.ticketNumber} de {ticketQuantity}</Text>
+            )}
+            <View style={styles.dateTimeRow}>
+              <Text style={styles.eventDate}>{formatTicketDate(ticketItem.date)}</Text>
+              <Text style={styles.eventTime}>{formatTicketTime(ticketItem.time)}</Text>
+            </View>
+
+            {/* Detalles */}
+            <View style={styles.detailsGrid}>
+              <View style={styles.detailRow}>
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>Lugar</Text>
+                  <Text style={styles.detailValue}>{ticketItem.venue}</Text>
+                </View>
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>Asiento</Text>
+                  <Text style={styles.detailValue}>{ticketItem.seat}</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Estado de validación */}
+            {isAvailable && validation && (
+              <View style={styles.validationStatusContainer}>
+                {validationStatus === 'validated' && validation.validatedAt && (
+                  <View style={styles.validationStatusRow}>
+                    <MaterialIcons name="verified" size={18} color="#10B981" />
+                    <Text style={styles.validationStatusText}>
+                      Validado {formatValidationTime(validation.validatedAt)}
+                    </Text>
+                  </View>
+                )}
+                {validationStatus === 'scanned' && validation.scannedAt && (
+                  <View style={styles.validationStatusRow}>
+                    <MaterialIcons name="qr-code-scanner" size={18} color="#F59E0B" />
+                    <Text style={styles.validationStatusText}>
+                      Escaneado {formatValidationTime(validation.scannedAt)} - En validación
+                    </Text>
+                  </View>
+                )}
+                {validationStatus === 'pending' && (
+                  <View style={styles.validationStatusRow}>
+                    <MaterialIcons name="schedule" size={18} color={EventuColors.mediumGray} />
+                    <Text style={styles.validationStatusText}>
+                      Esperando validación
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* QR Code */}
+            {isAvailable ? (
+              <>
+                <View style={[
+                  styles.qrContainer,
+                  isValidated && styles.qrContainerValidated,
+                  isScanned && !isValidated && styles.qrContainerScanned,
+                ]}>
+                  {qrLoading ? (
+                    <View style={styles.unavailableMessage}>
+                      <ActivityIndicator size="large" color={EventuColors.magenta} />
+                      <Text style={styles.unavailableText}>
+                        Generando código QR...
+                      </Text>
+                    </View>
+                  ) : qrToken ? (
+                    <View style={styles.qrWrapper}>
+                      <Animated.View
+                        style={[
+                          styles.qrCodeContainer,
+                          isValidated && {
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            borderColor: '#10B981',
+                            borderWidth: 3,
+                            borderRadius: 16,
+                            padding: 8,
+                            transform: [{
+                              scale: validationAnimation.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [1, 1.05],
+                              }),
+                            }],
+                          },
+                          isScanned && !isValidated && {
+                            borderColor: '#F59E0B',
+                            borderWidth: 2,
+                            borderRadius: 16,
+                            padding: 4,
+                          },
+                        ]}
+                      >
+                        {isValidated && (
+                          <Animated.View 
+                            style={[
+                              styles.qrOverlay,
+                              {
+                                opacity: validationAnimation,
+                              }
+                            ]}
+                          >
+                            <MaterialIcons name="check-circle" size={48} color="#10B981" />
+                            <Text style={styles.qrOverlayText}>Validado</Text>
+                          </Animated.View>
+                        )}
+                        <QRCodeDisplay
+                          payload={getQRPayload(index) || ''}
+                          size={160}
+                          validated={isValidated}
+                          scanned={isScanned && !isValidated}
+                        />
+                      </Animated.View>
+                    </View>
+                  ) : (
+                    <View style={styles.unavailableMessage}>
+                      <MaterialIcons name="error-outline" size={48} color={EventuColors.mediumGray} />
+                      <Text style={styles.unavailableText}>
+                        No se pudo generar el código QR
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                
+                {/* Código de barras */}
+                {barcodeToken && ticket && (
+                  <View style={styles.barcodeContainer}>
+                    <BarcodeDisplay
+                      token={barcodeToken}
+                      width={width - 80}
+                      height={60}
+                      showLabel={true}
+                    />
+                  </View>
+                )}
+              </>
+            ) : (
+              <View style={styles.qrContainer}>
+                <View style={styles.unavailableMessage}>
+                  <MaterialIcons name="schedule" size={48} color={EventuColors.mediumGray} />
+                  <Text style={styles.unavailableText}>
+                    Disponible el día del evento
+                  </Text>
+                  <Text style={styles.unavailableSubtext}>
+                    {formatTicketDate(ticketItem.date)}
+                  </Text>
+                </View>
+              </View>
+            )}
+          </View>
+
+          {/* Círculos decorativos */}
+          <View style={styles.circleLeft} />
+          <View style={styles.circleRight} />
+        </Animated.View>
       </View>
-    </View>
-  );
+    );
+  };
 
   if (loading) {
     return (
@@ -674,6 +915,41 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
+  barcodeContainer: {
+    marginTop: 16,
+    padding: 20,
+    paddingVertical: 24,
+    backgroundColor: 'rgba(0,0,0,0.02)',
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  barcodeLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: EventuColors.mediumGray,
+    marginBottom: 16,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  barcodeWrapper: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+  },
+  barcodeLines: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 1.5,
+    height: 60,
+    width: '100%',
+    paddingHorizontal: 10,
+  },
+  barcodeLine: {
+    backgroundColor: EventuColors.black,
+    borderRadius: 0.5,
+  },
   unavailableMessage: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -777,5 +1053,100 @@ const styles = StyleSheet.create({
     color: EventuColors.white,
     fontSize: 16,
     fontWeight: '600',
+  },
+  validationBadge: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    backgroundColor: '#10B981',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    zIndex: 10,
+    ...Shadows.md,
+  },
+  validationBadgeText: {
+    color: EventuColors.white,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  scannedBadge: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    backgroundColor: '#F59E0B',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    zIndex: 10,
+    ...Shadows.md,
+  },
+  scannedBadgeText: {
+    color: EventuColors.white,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  validationStatusContainer: {
+    marginTop: 16,
+    marginBottom: 8,
+    padding: 12,
+    backgroundColor: 'rgba(16, 185, 129, 0.05)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.2)',
+  },
+  validationStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  validationStatusText: {
+    fontSize: 13,
+    color: '#10B981',
+    fontWeight: '600',
+  },
+  qrContainerValidated: {
+    backgroundColor: 'rgba(16, 185, 129, 0.05)',
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#10B981',
+  },
+  qrContainerScanned: {
+    backgroundColor: 'rgba(245, 158, 11, 0.05)',
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#F59E0B',
+  },
+  qrWrapper: {
+    position: 'relative',
+  },
+  qrOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderRadius: 12,
+    zIndex: 1,
+    gap: 8,
+  },
+  qrOverlayText: {
+    color: '#10B981',
+    fontSize: 14,
+    fontWeight: '700',
+    marginTop: 4,
+  },
+  qrCodeContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

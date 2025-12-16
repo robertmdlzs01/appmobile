@@ -6,6 +6,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useState } from 'react';
+import * as WebBrowser from 'expo-web-browser';
 import {
   Dimensions,
   Image,
@@ -82,26 +83,33 @@ export default function ReviewTicketSummaryScreen() {
     image: eventData.image || require('@/assets/images/react-logo.png'),
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (!acceptTerms) {
       setError(createError('validation', 'Por favor acepta los términos y condiciones'));
       return;
     }
     
-    if (!purchaseId) {
-      setError(createError('validation', 'ID de compra no encontrado. Por favor vuelve a intentar.'));
-      return;
-    }
-    
     setError(null);
-    router.push({
-      pathname: '/booking/payment',
-      params: {
-        ...params,
-        purchaseId: purchaseId,
-        totalAmount: totalAmount.toString(),
-        serviceFee: serviceFee.toString(),
-      },
+    
+    // Redirigir a la web para completar la compra
+    const eventId = Array.isArray(params.eventId) ? params.eventId[0] : params.eventId || '1';
+    const ticketType = (Array.isArray(params.ticketType) ? params.ticketType[0] : params.ticketType) || 'General';
+    const eventName = (Array.isArray(params.eventName) ? params.eventName[0] : params.eventName) || summary.eventName;
+    
+    const webUrl = new URL('https://eventu.co/booking');
+    webUrl.searchParams.set('eventId', eventId);
+    webUrl.searchParams.set('ticketType', ticketType);
+    webUrl.searchParams.set('tickets', numberOfTickets.toString());
+    webUrl.searchParams.set('totalAmount', totalAmount.toString());
+    webUrl.searchParams.set('eventName', eventName);
+    webUrl.searchParams.set('date', summary.date);
+    webUrl.searchParams.set('time', summary.time);
+    webUrl.searchParams.set('fullName', summary.fullName);
+    webUrl.searchParams.set('email', summary.email);
+    webUrl.searchParams.set('source', 'app');
+    
+    await WebBrowser.openBrowserAsync(webUrl.toString(), {
+      presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
     });
   };
 
@@ -224,7 +232,7 @@ export default function ReviewTicketSummaryScreen() {
             end={{ x: 1, y: 0 }}
             style={styles.gradient}
           >
-            <Text style={styles.buttonText}>Confirmar y Proceder al Pago</Text>
+            <Text style={styles.buttonText}>Continuar en la Web</Text>
           </LinearGradient>
         </Pressable>
       </View>

@@ -39,7 +39,7 @@ function AnimatedTabIcon({
       damping: 18,
       stiffness: 200,
     });
-    opacity.value = withTiming(focused ? 1 : 1, { duration: 250 });
+    opacity.value = withTiming(focused ? 1 : 1, { duration: 125 });
     iconScale.value = withSpring(focused ? 1 : 1, {
       damping: 15,
       stiffness: 180,
@@ -95,6 +95,7 @@ export default function TabLayout() {
 
   return (
     <Tabs
+      initialRouteName="index"
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         tabBarInactiveTintColor: '#A0A0A0',
@@ -115,20 +116,23 @@ export default function TabLayout() {
           alignItems: 'center',
           paddingVertical: 0,
           height: 70,
+          minHeight: 70,
         },
+        tabBarHideOnKeyboard: true,
+        tabBarAccessibilityLabel: 'Tab bar',
       }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Inicio',
-          tabBarIcon: ({ color, focused }) => renderTabIcon('house.fill', focused, color),
-        }}
-      />
       <Tabs.Screen
         name="tickets"
         options={{
           title: 'Entradas',
           tabBarIcon: ({ color, focused }) => renderTabIcon('ticket.fill', focused, color),
+        }}
+      />
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Eventos',
+          tabBarIcon: ({ color, focused }) => renderTabIcon('house.fill', focused, color),
         }}
       />
       <Tabs.Screen
@@ -159,6 +163,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 0,
     borderWidth: 1.5,
     borderColor: 'rgba(255, 255, 255, 0.25)',
+    zIndex: 1000,
     ...Platform.select({
       ios: {
         backgroundColor: 'rgba(255, 255, 255, 0.1)',

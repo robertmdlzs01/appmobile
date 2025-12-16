@@ -3,17 +3,18 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { AppContextProvider } from '@/contexts/AppContext';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useGlobalScreenCaptureBlock } from '@/hooks/useScreenCapture';
 
 SplashScreen.preventAutoHideAsync();
 
 export const unstable_settings = {
-  initialRouteName: 'welcome',
+  initialRouteName: 'splash',
 };
 
 function RootLayoutNav() {
@@ -21,6 +22,9 @@ function RootLayoutNav() {
   const segments = useSegments();
   const router = useRouter();
   const colorScheme = useColorScheme();
+
+  // Bloquear capturas de pantalla globalmente (excepto en rutas permitidas)
+  useGlobalScreenCaptureBlock(true);
 
   useEffect(() => {
     if (isLoading) return;
@@ -39,11 +43,13 @@ function RootLayoutNav() {
     } else if (!isAuthenticated && inTabs) {
       router.replace('/welcome');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, isLoading, segments]);
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
+        <Stack.Screen name="splash" options={{ headerShown: false }} />
         <Stack.Screen name="welcome" options={{ headerShown: false }} />
         <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="register" options={{ headerShown: false }} />
@@ -59,6 +65,13 @@ function RootLayoutNav() {
         <Stack.Screen name="search" options={{ headerShown: false }} />
         <Stack.Screen name="notifications" options={{ headerShown: false }} />
         <Stack.Screen name="ticket/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="tickets/history" options={{ headerShown: false }} />
+        <Stack.Screen name="tickets/transfer" options={{ headerShown: false }} />
+        <Stack.Screen name="tickets/offline" options={{ headerShown: false }} />
+        <Stack.Screen name="tickets/event-info" options={{ headerShown: false }} />
+        <Stack.Screen name="tickets/scan" options={{ headerShown: false }} />
+        <Stack.Screen name="staff/index" options={{ headerShown: false }} />
+        <Stack.Screen name="staff/scan" options={{ headerShown: false }} />
         <Stack.Screen name="event/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="event/select-seat" options={{ headerShown: false }} />
         <Stack.Screen name="event/video" options={{ headerShown: false }} />

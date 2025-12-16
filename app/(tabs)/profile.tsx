@@ -1,17 +1,16 @@
 import { AnimatedCard } from '@/components/animated-card';
 import { FadeInView } from '@/components/fade-in-view';
 import { PressableCard } from '@/components/pressable-card';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import Colors, { EventuColors, EventuGradients } from '@/constants/theme';
+import Colors, { EventuColors } from '@/constants/theme';
 import { Radius, Shadows } from '@/constants/theme-extended';
 import { useAuth } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useImagePicker } from '@/hooks/useImagePicker';
+import { useSafeAreaHeaderPadding } from '@/hooks/useSafeAreaInsets';
+import { useStaffPermissions } from '@/hooks/useStaffPermissions';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 export default function ProfileScreen() {
@@ -19,6 +18,7 @@ export default function ProfileScreen() {
   const colors = Colors[colorScheme ?? 'light'];
   const { user, logout, updateUser } = useAuth();
   const { showImagePickerOptions, loading: imageLoading } = useImagePicker();
+  const { paddingTop: safeAreaPaddingTop } = useSafeAreaHeaderPadding();
 
   const isLoggedIn = !!user;
 
@@ -39,37 +39,46 @@ export default function ProfileScreen() {
   };
 
   const menuItems = [
-    { id: '1', icon: 'shopping-cart', title: 'Mis Compras', subtitle: 'Ver historial de compras' },
+    { id: '1', icon: 'history', title: 'Historial de Entradas', subtitle: 'Ver todas tus entradas pasadas' },
     { id: '2', icon: 'receipt', title: 'Facturación', subtitle: 'Ver facturas de eventos' },
-    { id: '3', icon: 'credit-card', title: 'Métodos de Pago', subtitle: 'Gestionar tarjetas' },
-    { id: '4', icon: 'settings', title: 'Configuración de Notificaciones', subtitle: 'Gestionar alertas y preferencias' },
-    { id: '5', icon: 'lock', title: 'Privacidad y Seguridad', subtitle: 'Contraseña y 2FA' },
-    { id: '6', icon: 'help-outline', title: 'Ayuda y Soporte', subtitle: 'Centro de ayuda' },
-    { id: '7', icon: 'description', title: 'Política de Privacidad', subtitle: 'Leer política' },
+    { id: '3', icon: 'settings', title: 'Configuración de Notificaciones', subtitle: 'Gestionar alertas y preferencias' },
+    { id: '4', icon: 'lock', title: 'Privacidad y Seguridad', subtitle: 'Contraseña y 2FA' },
+    { id: '5', icon: 'help-outline', title: 'Ayuda y Soporte', subtitle: 'Centro de ayuda' },
+    { id: '6', icon: 'description', title: 'Política de Privacidad', subtitle: 'Leer política' },
   ];
+
+  // Verificar permisos de staff
+  const { isStaff } = useStaffPermissions();
+
+  // Opciones para staff/administradores (solo visible si el usuario es staff)
+  const staffItems = isStaff
+    ? [
+        { id: 'scan', icon: 'qr-code-scanner', title: 'Escanear Tickets', subtitle: 'Validar entradas con QR o código de barras', color: EventuColors.hotPink },
+      ]
+    : [];
 
   const handleMenuPress = (id: string) => {
     switch (id) {
       case '1':
-        router.push('/(tabs)/tickets');
+        router.push('/tickets/history');
         break;
       case '2':
         router.push('/profile/billing');
         break;
       case '3':
-        router.push('/profile/payment-methods');
-        break;
-      case '4':
         router.push('/settings/notifications');
         break;
-      case '5':
+      case '4':
         router.push('/settings/security');
         break;
-      case '6':
+      case '5':
         router.push('/help');
         break;
-      case '7':
+      case '6':
         router.push('/profile/privacy');
+        break;
+      case 'scan':
+        router.push('/staff');
         break;
       default:
         break;
@@ -84,8 +93,8 @@ export default function ProfileScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          <FadeInView delay={100}>
-            <View style={styles.header}>
+          <FadeInView delay={50}>
+            <View style={[styles.header, { paddingTop: safeAreaPaddingTop + 16 }]}>
               <Text style={styles.title}>
                 Perfil
               </Text>
@@ -93,14 +102,14 @@ export default function ProfileScreen() {
           </FadeInView>
 
           {!isLoggedIn ? (
-            <FadeInView delay={200}>
+            <FadeInView delay={100}>
               <View style={styles.loginSection}>
                 <MaterialIcons name="account-circle" size={80} color="rgba(255,255,255,0.3)" />
                 <Text style={styles.loginTitle}>
                   Inicia sesión para continuar
                 </Text>
                 <Text style={styles.loginSubtitle}>
-                  Accede a tu cuenta para gestionar tickets y más
+                  Accede a tu cuenta para ver todas tus entradas al instante. Si ya compraste, confirma tus datos.
                 </Text>
                 <PressableCard
                   style={styles.loginButton}
@@ -120,7 +129,7 @@ export default function ProfileScreen() {
             </FadeInView>
           ) : (
             <>
-              <FadeInView delay={200}>
+              <FadeInView delay={100}>
                 <View style={styles.userSection}>
                   <Pressable
                     onPress={handleAvatarPress}
@@ -167,15 +176,15 @@ export default function ProfileScreen() {
                     hapticFeedback={true}
                   >
                     <MaterialIcons name="edit" size={18} color={EventuColors.magenta} />
-                    <Text style={styles.editButtonText}>Editar Perfil</Text>
+                    <Text style={styles.editButtonText}>Actualizar Datos</Text>
                   </PressableCard>
                 </View>
               </FadeInView>
 
-              <FadeInView delay={300}>
+              <FadeInView delay={150}>
                 <View style={styles.menuSection}>
                   {menuItems.map((item, index) => (
-                    <AnimatedCard key={item.id} index={index} delay={index * 50}>
+                    <AnimatedCard key={item.id} index={index} delay={index * 25}>
                       <PressableCard
                         style={[
                           styles.menuItem,
@@ -214,7 +223,55 @@ export default function ProfileScreen() {
                 </View>
               </FadeInView>
 
-              <FadeInView delay={400}>
+              {/* Sección de Staff/Administradores - Solo visible si el usuario es staff */}
+              {staffItems.length > 0 && (
+                <FadeInView delay={175}>
+                  <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>Herramientas de Staff</Text>
+                  </View>
+                  <View style={styles.menuContainer}>
+                    {staffItems.map((item, index) => (
+                    <AnimatedCard key={item.id} delay={50 * (index + 1)}>
+                      <PressableCard
+                        style={[
+                          styles.menuItem,
+                          {
+                            backgroundColor: EventuColors.white,
+                            borderWidth: 1,
+                            borderColor: EventuColors.lightGray,
+                          },
+                        ]}
+                        onPress={() => handleMenuPress(item.id)}
+                        hapticFeedback={true}
+                      >
+                        <View style={styles.menuItemLeft}>
+                          <View
+                            style={[
+                              styles.iconContainer,
+                              { backgroundColor: (item.color || EventuColors.magenta) + '20' },
+                            ]}>
+                            <MaterialIcons 
+                              name={item.icon as any} 
+                              size={20} 
+                              color={item.color || EventuColors.magenta} 
+                            />
+                          </View>
+                          <View style={styles.menuItemText}>
+                            <Text style={styles.menuItemTitle}>
+                              {item.title}
+                            </Text>
+                            <Text style={styles.menuItemSubtitle}>{item.subtitle}</Text>
+                          </View>
+                        </View>
+                        <MaterialIcons name="chevron-right" size={20} color={EventuColors.mediumGray} />
+                      </PressableCard>
+                    </AnimatedCard>
+                    ))}
+                  </View>
+                </FadeInView>
+              )}
+
+              <FadeInView delay={200}>
                 <PressableCard
                   style={[
                     styles.logoutButton,
@@ -271,7 +328,6 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 20,
-    paddingTop: 60,
     paddingBottom: 24,
   },
   title: {
@@ -398,6 +454,21 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
   },
   menuSection: {
+    paddingHorizontal: 20,
+    gap: 12,
+    marginBottom: 20,
+  },
+  sectionHeader: {
+    paddingHorizontal: 20,
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: EventuColors.black,
+  },
+  menuContainer: {
     paddingHorizontal: 20,
     gap: 12,
     marginBottom: 20,

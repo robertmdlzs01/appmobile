@@ -1,7 +1,7 @@
 import { EventuColors } from '@/constants/theme';
 import { Radius, Shadows } from '@/constants/theme-extended';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   StyleSheet,
   Text,
@@ -35,6 +35,17 @@ export function ErrorBanner({
   const [slideAnim] = useState(new Animated.Value(-100));
   const [isVisible, setIsVisible] = useState(false);
 
+  const handleDismiss = useCallback(() => {
+    Animated.timing(slideAnim, {
+      toValue: -100,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setIsVisible(false);
+      onDismiss?.();
+    });
+  }, [slideAnim, onDismiss]);
+
   useEffect(() => {
     if (error) {
       setIsVisible(true);
@@ -54,18 +65,7 @@ export function ErrorBanner({
     } else {
       handleDismiss();
     }
-  }, [error]);
-
-  const handleDismiss = () => {
-    Animated.timing(slideAnim, {
-      toValue: -100,
-      duration: 300,
-      useNativeDriver: true,
-    }).start(() => {
-      setIsVisible(false);
-      onDismiss?.();
-    });
-  };
+  }, [error, autoDismiss, dismissAfter, slideAnim, handleDismiss]);
 
   if (!error || !isVisible) return null;
 

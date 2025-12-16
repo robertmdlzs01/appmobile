@@ -6,6 +6,7 @@ import { Radius, Shadows } from '@/constants/theme-extended';
 import { useAuth } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useImagePicker } from '@/hooks/useImagePicker';
+import { useSafeAreaHeaderPadding } from '@/hooks/useSafeAreaInsets';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useState, useEffect } from 'react';
@@ -27,10 +28,12 @@ export default function EditProfileScreen() {
   const colors = Colors[colorScheme ?? 'light'];
   const { user, updateUser } = useAuth();
   const { showImagePickerOptions, loading: imageLoading } = useImagePicker();
+  const { paddingTop: safeAreaPaddingTop } = useSafeAreaHeaderPadding();
 
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
   const [phone, setPhone] = useState('');
+  const [documentId, setDocumentId] = useState('');
   const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');
   const [location, setLocation] = useState('');
@@ -128,12 +131,12 @@ export default function EditProfileScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}>
         {}
-        <ThemedView style={styles.header}>
+        <ThemedView style={[styles.header, { paddingTop: safeAreaPaddingTop + 16 }]}>
           <Pressable onPress={() => router.back()} style={styles.backButton}>
             <IconSymbol name="chevron.left" size={24} color={colors.text} />
           </Pressable>
           <ThemedText type="title" style={styles.headerTitle}>
-            Editar Perfil
+            Actualizar Datos
           </ThemedText>
           <View style={styles.backButton} />
         </ThemedView>
@@ -287,6 +290,31 @@ export default function EditProfileScreen() {
             </ThemedView>
 
             <ThemedView style={styles.inputContainer}>
+              <ThemedText style={styles.label}>
+                Documento de Identidad <Text style={styles.required}>*</Text>
+              </ThemedText>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  {
+                    backgroundColor: EventuColors.white,
+                    borderColor: border,
+                  },
+                ]}>
+                <IconSymbol name="person.text.rectangle.fill" size={18} color={EventuColors.mediumGray} />
+                <TextInput
+                  style={[styles.input, { color: EventuColors.black }]}
+                  placeholder="C.C. o C.E."
+                  placeholderTextColor={EventuColors.mediumGray}
+                  value={documentId}
+                  onChangeText={setDocumentId}
+                  keyboardType="numeric"
+                  autoComplete="off"
+                />
+              </View>
+            </ThemedView>
+
+            <ThemedView style={styles.inputContainer}>
               <ThemedText style={styles.label}>Fecha de nacimiento</ThemedText>
               <View
                 style={[
@@ -398,7 +426,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 60,
     paddingBottom: 16,
   },
   headerTitle: {

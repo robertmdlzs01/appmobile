@@ -13,13 +13,32 @@ export interface MockTicket {
   status: 'active' | 'used' | 'cancelled';
 }
 
+// Helper function to get today's date in YYYY-MM-DD format
+const getTodayDate = (): string => {
+  const today = new Date();
+  return today.toISOString().split('T')[0];
+};
+
+// Helper function to get tomorrow's date in YYYY-MM-DD format
+const getTomorrowDate = (): string => {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return tomorrow.toISOString().split('T')[0];
+};
+
+// Helper function to format date display
+const formatDateDisplay = (dateString: string): string => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+
 export const mockTickets: MockTicket[] = [
   {
     id: 'ticket-1',
     eventId: '1',
     eventName: 'SANTALAND 2025',
-    date: '2025-12-12',
-    dateDisplay: '12 dic 2025',
+    date: getTodayDate(), // Fecha de hoy - visible inmediatamente
+    dateDisplay: formatDateDisplay(getTodayDate()),
     time: '18:00',
     venue: 'Centro de Convenciones',
     location: 'Barranquilla',
@@ -102,8 +121,8 @@ export const mockTickets: MockTicket[] = [
     id: 'ticket-7',
     eventId: '1',
     eventName: 'SANTALAND 2025',
-    date: '2025-12-13',
-    dateDisplay: '13 dic 2025',
+    date: getTomorrowDate(), // Mañana - visible inmediatamente
+    dateDisplay: formatDateDisplay(getTomorrowDate()),
     time: '18:00',
     venue: 'Centro de Convenciones',
     location: 'Barranquilla',
@@ -200,8 +219,8 @@ export const mockTickets: MockTicket[] = [
     id: 'ticket-14',
     eventId: '1',
     eventName: 'SANTALAND 2025',
-    date: '2025-12-12',
-    dateDisplay: '12 dic 2025',
+    date: getTodayDate(), // Fecha de hoy - visible inmediatamente
+    dateDisplay: formatDateDisplay(getTodayDate()),
     time: '18:00',
     venue: 'Centro de Convenciones',
     location: 'Barranquilla',
@@ -284,8 +303,8 @@ export const mockTickets: MockTicket[] = [
     id: 'ticket-20',
     eventId: '1',
     eventName: 'SANTALAND 2025',
-    date: '2025-12-12',
-    dateDisplay: '12 dic 2025',
+    date: getTodayDate(), // Fecha de hoy - visible inmediatamente
+    dateDisplay: formatDateDisplay(getTodayDate()),
     time: '18:00',
     venue: 'Centro de Convenciones',
     location: 'Barranquilla',

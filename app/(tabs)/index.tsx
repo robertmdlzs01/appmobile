@@ -4,152 +4,160 @@ import { FadeInView } from '@/components/fade-in-view';
 import { OptimizedImage } from '@/components/optimized-image';
 import { PressableCard } from '@/components/pressable-card';
 import { SkeletonEventCard, SkeletonLoader } from '@/components/skeleton-loader';
-import { EventuColors } from '@/constants/theme';
+import Colors, { EventuColors } from '@/constants/theme';
 import { Radius, Shadows } from '@/constants/theme-extended';
 import { Event } from '@/constants/types';
-import { useEvents } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useLocation } from '@/hooks/useLocation';
-import { useSearchHistory } from '@/hooks/useSearchHistory';
+import { useSafeAreaHeaderPadding } from '@/hooks/useSafeAreaInsets';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import * as WebBrowser from 'expo-web-browser';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
   Image,
-  Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View
 } from 'react-native';
+import { mockTickets } from '@/services/mockTickets';
+import { mockEvents } from '@/services/mockData';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width - 40;
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { user } = useAuth();
-  const { events, featuredEvents, loading, error } = useEvents();
-  const { location: currentLocation, loading: locationLoading, refresh: refreshLocation } = useLocation();
-  const { history, addToHistory, clearHistory, removeFromHistory } = useSearchHistory();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showLocationModal, setShowLocationModal] = useState(false);
-  const [showFilterModal, setShowFilterModal] = useState(false);
-  const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState('Detectando ubicación...');
-  const [priceFilter, setPriceFilter] = useState<'all' | 'low' | 'medium' | 'high'>('all');
-  const [hasNotifications, setHasNotifications] = useState(false); 
+  const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme ?? 'light'];
+  const { user, isAuthenticated } = useAuth();
+  const { location: currentLocation, loading: locationLoading } = useLocation();
+  const { paddingTop: safeAreaPaddingTop } = useSafeAreaHeaderPadding();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [hasNotifications] = useState(false);
+
+  // Obtener eventos de los tickets comprados
+  const purchasedEvents = useMemo(() => {
+    if (!isAuthenticated) return [];
+
+    // Obtener eventIds únicos de los tickets comprados
+    const eventIds = [...new Set(mockTickets.map(ticket => ticket.eventId))];
+    
+    // Filtrar eventos que coincidan con los eventIds de los tickets
+    const events = mockEvents
+      .filter(event => eventIds.includes(event.id))
+      .map(event => ({
+        id: event.id,
+        title: event.name,
+        description: event.description || event.subtitle || '',
+        date: event.date,
+        time: event.time,
+        venue: event.location,
+        location: event.location,
+        price: event.price,
+        category: event.category,
+        imageUrl: event.images && event.images.length > 0 ? event.images[0] : '',
+        images: event.images || [],
+        videoUrl: event.videoUrl,
+        promoter: event.promoter,
+        instructions: event.instructions || [],
+        availableTickets: event.availableTickets || 0,
+        soldTickets: event.soldTickets || 0,
+        status: (event.status === 'draft' || event.status === 'cancelled' || event.status === 'published' 
+          ? (event.status as 'draft' | 'published' | 'cancelled')
+          : 'published') as 'draft' | 'published' | 'cancelled',
+        createdAt: event.createdAt,
+        updatedAt: event.updatedAt,
+      })) as Event[];
+
+    return events;
+  }, [isAuthenticated]);
 
   useEffect(() => {
-    if (currentLocation?.fullAddress) {
-      setSelectedLocation(currentLocation.fullAddress);
-    }
-  }, [currentLocation]);
+    setLoading(false);
+  }, []); 
 
-
-  const searchSuggestions = React.useMemo(() => {
-    if (!searchQuery.trim() || searchQuery.length < 2) {
-      return history.slice(0, 5);
-    }
-
-    const queryLower = searchQuery.toLowerCase();
-    const eventSuggestions = events
-      .filter((event) =>
-        event.title.toLowerCase().includes(queryLower) ||
-        event.venue.toLowerCase().includes(queryLower) ||
-        event.location.toLowerCase().includes(queryLower)
-      )
-      .slice(0, 5)
-      .map((event) => event.title);
-
-    const historyMatches = history.filter((item) =>
-      item.includes(queryLower)
-    ).slice(0, 3);
-
-    return [...new Set([...historyMatches, ...eventSuggestions])].slice(0, 5);
-  }, [searchQuery, events, history]);
-
-  const filteredEvents = events.filter((event) => {
-    const matchesSearch =
-      event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.description.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    let matchesPrice = true;
-    if (priceFilter === 'low') matchesPrice = event.price < 50;
-    else if (priceFilter === 'medium') matchesPrice = event.price >= 50 && event.price < 100;
-    else if (priceFilter === 'high') matchesPrice = event.price >= 100;
-    
-    return matchesSearch && matchesPrice;
-  });
-
-  const handleSearchSubmit = () => {
-    if (searchQuery.trim()) {
-      addToHistory(searchQuery);
-      setShowSearchSuggestions(false);
+  const handleOpenEventuWebsite = async () => {
+    try {
+      await WebBrowser.openBrowserAsync('https://eventu.co');
+    } catch (error) {
+      console.error('Error opening browser:', error);
     }
   };
 
-  const locations = currentLocation?.fullAddress 
-    ? [currentLocation.fullAddress, 'New York, USA', 'London, UK', 'Tokyo, Japan', 'Sydney, AUS']
-    : ['New York, USA', 'London, UK', 'Tokyo, Japan', 'Sydney, AUS'];
 
-
-  const renderEventCard = (event: Event, featured = false, index = 0) => (
-    <AnimatedCard key={event.id} index={index} delay={featured ? index * 100 : 0}>
-      <PressableCard
-        style={[styles.eventCard, featured && styles.featuredCard]}
-        onPress={() => router.push(`/event/${event.id}`)}
-        hapticFeedback={true}
-      >
-        <OptimizedImage
-          source={event.imageUrl || 'https://example.com/image.jpg'}
-          style={styles.eventImage}
-          contentFit="cover"
-          priority={featured ? 'high' : 'normal'}
-          cachePolicy="memory-disk"
-          transition={200}
-        />
-        <View style={styles.dateBadge}>
-          <Text style={styles.dateBadgeDay}>
-            {new Date(event.date).getDate()}
-          </Text>
-          <Text style={styles.dateBadgeMonth}>
-            {new Date(event.date).toLocaleDateString('en-US', {
-              month: 'short',
-            })}
-          </Text>
-        </View>
-        <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.95)']}
-          style={styles.eventGradient}
+  const renderEventCard = (event: Event, index = 0) => {
+    const eventDate = new Date(event.date);
+    const day = eventDate.getDate();
+    const month = eventDate.toLocaleDateString('es-CO', { month: 'short' });
+    
+    return (
+      <AnimatedCard key={event.id} index={index} delay={index * 50}>
+        <PressableCard
+          style={styles.eventCard}
+          onPress={() => router.push(`/event/${event.id}`)}
+          hapticFeedback={true}
         >
-          <View style={styles.eventInfo}>
+          <View style={styles.eventImageContainer}>
+            <OptimizedImage
+              source={event.imageUrl || 'https://example.com/image.jpg'}
+              style={styles.eventImage}
+              contentFit="cover"
+              priority="normal"
+              cachePolicy="memory-disk"
+              transition={200}
+            />
+            <View style={styles.imageOverlay} />
+            <View style={styles.dateBadge}>
+              <Text style={styles.dateBadgeDay}>{day}</Text>
+              <Text style={styles.dateBadgeMonth}>{month}</Text>
+            </View>
+            <View style={styles.categoryBadge}>
+              <Text style={styles.categoryBadgeText}>{event.category}</Text>
+            </View>
+          </View>
+          
+          <View style={styles.eventContent}>
             <Text style={styles.eventTitle} numberOfLines={2}>
               {event.title}
             </Text>
-            <View style={styles.eventDetails}>
-              <MaterialIcons name="place" size={14} color="rgba(255,255,255,0.7)" />
-              <Text style={styles.eventVenue} numberOfLines={1}>
-                {event.venue} • {event.time}
-              </Text>
-            </View>
-            <View style={styles.eventFooter}>
-              <View style={styles.priceTag}>
-                <Text style={styles.eventPrice}>
-                  ${event.price.toFixed(2)}
+            
+            <View style={styles.eventMeta}>
+              <View style={styles.eventMetaItem}>
+                <MaterialIcons name="place" size={16} color={EventuColors.magenta} />
+                <Text style={styles.eventMetaText} numberOfLines={1}>
+                  {event.venue}
                 </Text>
+              </View>
+              <View style={styles.eventMetaItem}>
+                <MaterialIcons name="schedule" size={16} color={EventuColors.violet} />
+                <Text style={styles.eventMetaText}>{event.time}</Text>
+              </View>
+            </View>
+            
+            <View style={styles.eventFooter}>
+              <View style={styles.priceContainer}>
+                <Text style={styles.priceLabel}>Desde</Text>
+                <Text style={styles.eventPrice}>${event.price.toLocaleString('es-CO')}</Text>
+              </View>
+              <View style={styles.viewButton}>
+                <Text style={styles.viewButtonText}>Ver detalles</Text>
+                <MaterialIcons name="arrow-forward" size={18} color={EventuColors.magenta} />
               </View>
             </View>
           </View>
-        </LinearGradient>
-      </PressableCard>
-    </AnimatedCard>
-  );
+        </PressableCard>
+      </AnimatedCard>
+    );
+  };
 
   return (
     <>
@@ -158,9 +166,9 @@ export default function HomeScreen() {
           headerShown: false,
         }}
       />
-      <View style={styles.container}>
-        <View style={styles.backgroundGradient}>
-          <View style={styles.header}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.backgroundGradient, { backgroundColor: colors.background }]}>
+          <View style={[styles.header, { paddingTop: safeAreaPaddingTop + 16 }]}>
             <TouchableOpacity 
               style={styles.notificationButton}
               onPress={() => router.push('/notifications')}
@@ -169,32 +177,32 @@ export default function HomeScreen() {
                 styles.notificationIconContainer,
                 hasNotifications && styles.notificationIconContainerFilled
               ]}>
-                  <MaterialIcons 
-                    name={hasNotifications ? "notifications" : "notifications-none"} 
-                    size={24} 
-                    color={hasNotifications ? EventuColors.white : EventuColors.violet} 
-                  />
+                <MaterialIcons 
+                  name={hasNotifications ? "notifications" : "notifications-none"} 
+                  size={24} 
+                  color={hasNotifications ? EventuColors.white : EventuColors.violet} 
+                />
               </View>
             </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.locationButton}
-              onPress={() => {
-                if (locationLoading) {
-                  refreshLocation();
-                } else {
-                  setShowLocationModal(true);
-                }
-              }}
-            >
-              <MaterialIcons 
-                name={locationLoading ? "my-location" : "place"} 
-                size={16} 
-                color={EventuColors.magenta} 
-              />
-              <Text style={styles.locationText}>
-                {locationLoading ? 'Detectando...' : selectedLocation}
-              </Text>
-            </TouchableOpacity>
+            
+            <View style={styles.headerCenter}>
+              <Text style={styles.headerTitle}>Mis Eventos</Text>
+              {currentLocation && !locationLoading && (
+                <View style={styles.headerLocationContainer}>
+                  <MaterialIcons name="location-on" size={16} color={EventuColors.violet} />
+                  <Text style={styles.headerLocationText} numberOfLines={1}>
+                    {currentLocation.fullAddress}
+                  </Text>
+                </View>
+              )}
+              {locationLoading && (
+                <View style={styles.headerLocationContainer}>
+                  <ActivityIndicator size="small" color={EventuColors.violet} />
+                  <Text style={styles.headerLocationText}>Obteniendo ubicación...</Text>
+                </View>
+              )}
+            </View>
+            
             <TouchableOpacity 
               style={styles.profileButton}
               onPress={() => router.push('/(tabs)/profile')}
@@ -216,128 +224,25 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* Mensaje de bienvenida */}
+          {isAuthenticated && (
+            <View style={styles.welcomeSection}>
+              <Text style={[styles.welcomeText, { color: colors.text }]}>
+                ¡Hola, {user?.name || 'Usuario'}! 👋
+              </Text>
+            </View>
+          )}
+
           <ScrollView
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
           >
-            <FadeInView delay={100}>
-              <View style={styles.searchSection}>
-                <View style={styles.searchWrapper}>
-                  <PressableCard style={styles.searchContainer} hapticFeedback={false}>
-                    <MaterialIcons name="search" size={20} color={EventuColors.mediumGray} />
-                    <TextInput
-                      style={styles.searchInput}
-                      placeholder="Buscar todos los eventos..."
-                      placeholderTextColor="rgba(0,0,0,0.5)"
-                      value={searchQuery}
-                      onChangeText={(text) => {
-                        setSearchQuery(text);
-                        setShowSearchSuggestions(text.length > 0 || history.length > 0);
-                      }}
-                      onFocus={() => setShowSearchSuggestions(true)}
-                      onSubmitEditing={handleSearchSubmit}
-                      returnKeyType="search"
-                    />
-                    {searchQuery && (
-                      <TouchableOpacity 
-                        onPress={() => {
-                          setSearchQuery('');
-                          setShowSearchSuggestions(false);
-                        }}
-                      >
-                        <MaterialIcons name="close" size={18} color={EventuColors.mediumGray} />
-                      </TouchableOpacity>
-                    )}
-                    {priceFilter !== 'all' && (
-                      <TouchableOpacity 
-                        onPress={() => {
-                          setPriceFilter('all');
-                          setShowFilterModal(false);
-                        }}
-                        style={styles.activeFilterBadge}
-                      >
-                        <Text style={styles.activeFilterText}>
-                          {priceFilter === 'low' ? '<$50' : priceFilter === 'medium' ? '$50-$100' : '>$100'}
-                        </Text>
-                        <MaterialIcons name="close" size={14} color={EventuColors.white} />
-                      </TouchableOpacity>
-                    )}
-                    <TouchableOpacity 
-                      style={styles.filterButton}
-                      onPress={() => setShowFilterModal(true)}
-                    >
-                      <MaterialIcons name="tune" size={20} color={EventuColors.mediumGray} />
-                    </TouchableOpacity>
-                  </PressableCard>
-
-                  {}
-                  {showSearchSuggestions && (searchQuery.length > 0 || history.length > 0) && (
-                    <View style={styles.suggestionsContainer}>
-                      {searchQuery.length === 0 && history.length > 0 && (
-                        <View style={styles.suggestionsHeader}>
-                          <Text style={styles.suggestionsTitle}>Búsquedas recientes</Text>
-                          <TouchableOpacity onPress={clearHistory}>
-                            <Text style={styles.clearHistoryText}>Limpiar</Text>
-                          </TouchableOpacity>
-                        </View>
-                      )}
-                      {searchSuggestions.length > 0 ? (
-                        searchSuggestions.map((suggestion, index) => (
-                          <TouchableOpacity
-                            key={index}
-                            style={styles.suggestionItem}
-                            onPress={() => {
-                              setSearchQuery(suggestion);
-                              addToHistory(suggestion);
-                              setShowSearchSuggestions(false);
-                            }}
-                          >
-                            <MaterialIcons 
-                              name={history.includes(suggestion.toLowerCase()) ? 'history' : 'search'} 
-                              size={18} 
-                              color={EventuColors.mediumGray} 
-                            />
-                            <Text style={styles.suggestionText}>{suggestion}</Text>
-                            {history.includes(suggestion.toLowerCase()) && (
-                              <TouchableOpacity
-                                onPress={(e) => {
-                                  e.stopPropagation();
-                                  removeFromHistory(suggestion.toLowerCase());
-                                }}
-                              >
-                                <MaterialIcons name="close" size={16} color={EventuColors.mediumGray} />
-                              </TouchableOpacity>
-                            )}
-                          </TouchableOpacity>
-                        ))
-                      ) : searchQuery.length > 0 ? (
-                        <View style={styles.noSuggestions}>
-                          <Text style={styles.noSuggestionsText}>
-                            No se encontraron sugerencias para "{searchQuery}"
-                          </Text>
-                        </View>
-                      ) : null}
-                    </View>
-                  )}
-                </View>
-              </View>
-            </FadeInView>
-
-
             {loading ? (
               <View style={styles.skeletonContainer}>
                 <View style={styles.skeletonSection}>
                   <SkeletonLoader variant="text" width="40%" height={20} />
-                  <View style={styles.skeletonCards}>
-                    {Array.from({ length: 3 }).map((_, i) => (
-                      <SkeletonEventCard key={i} style={{ marginRight: 16 }} />
-                    ))}
-                  </View>
-                </View>
-                <View style={styles.skeletonSection}>
-                  <SkeletonLoader variant="text" width="50%" height={20} style={{ marginBottom: 16 }} />
                   <View style={styles.skeletonGrid}>
-                    {Array.from({ length: 6 }).map((_, i) => (
+                    {Array.from({ length: 3 }).map((_, i) => (
                       <SkeletonEventCard key={i} style={{ marginBottom: 16 }} />
                     ))}
                   </View>
@@ -346,149 +251,74 @@ export default function HomeScreen() {
             ) : error ? (
               <ErrorState
                 error={handleApiError({ message: error })}
-                onRetry={() => router.replace('/(tabs)')}
+                onRetry={() => setError(null)}
                 title="Error al cargar eventos"
                 message={error}
               />
+            ) : !isAuthenticated ? (
+              <FadeInView delay={50}>
+                <View style={styles.emptyContainer}>
+                  <MaterialIcons name="event" size={64} color={colors.secondaryText} />
+                  <Text style={[styles.emptyText, { color: colors.text }]}>Inicia sesión para ver tus eventos</Text>
+                  <Text style={[styles.emptySubtext, { color: colors.secondaryText }]}>
+                    Los eventos para los cuales tienes boletos comprados aparecerán aquí
+                  </Text>
+                  <PressableCard
+                    style={[styles.actionButton, { backgroundColor: EventuColors.magenta }]}
+                    onPress={() => router.push('/login')}
+                  >
+                    <Text style={styles.actionButtonText}>Iniciar Sesión</Text>
+                  </PressableCard>
+                </View>
+              </FadeInView>
+            ) : purchasedEvents.length === 0 ? (
+              <FadeInView delay={100}>
+                <View style={styles.emptyContainer}>
+                  <MaterialIcons name="event-busy" size={64} color={colors.secondaryText} />
+                  <Text style={[styles.emptyText, { color: colors.text }]}>No tienes eventos aún</Text>
+                  <Text style={[styles.emptySubtext, { color: colors.secondaryText }]}>
+                    Compra tus entradas en Eventu.co y aparecerán aquí
+                  </Text>
+                </View>
+              </FadeInView>
             ) : (
-              <>
-                {!searchQuery && featuredEvents.length > 0 && (
-                  <FadeInView delay={300}>
-                    <View style={styles.section}>
-                      <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>Eventos destacados</Text>
-                      </View>
-                      <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={styles.featuredScroll}
-                      >
-                        {featuredEvents.map((event, index) => renderEventCard(event, true, index))}
-                      </ScrollView>
-                    </View>
-                  </FadeInView>
-                )}
-
-                <FadeInView delay={400}>
-                  <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                      <Text style={styles.sectionTitle}>
-                        {searchQuery ? 'Resultados de búsqueda' : 'Todos los eventos'}
-                      </Text>
-                      <Text style={styles.eventCount}>{filteredEvents.length} {filteredEvents.length === 1 ? 'evento' : 'eventos'}</Text>
-                    </View>
-                    {filteredEvents.length === 0 ? (
-                      <View style={styles.emptyContainer}>
-                        <MaterialIcons name="event-busy" size={64} color={EventuColors.mediumGray} />
-                        <Text style={styles.emptyText}>No se encontraron eventos</Text>
-                        <Text style={styles.emptySubtext}>
-                          {searchQuery || priceFilter !== 'all'
-                            ? 'Intenta ajustar tus filtros'
-                            : 'Vuelve más tarde para nuevos eventos'}
-                        </Text>
-                      </View>
-                    ) : (
-                      <View style={styles.eventsGrid}>
-                        {filteredEvents.map((event, index) => renderEventCard(event, false, index))}
-                      </View>
-                    )}
+              <FadeInView delay={100}>
+                <View style={styles.section}>
+                  <View style={styles.sectionHeader}>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                      Eventos con Boletos Comprados
+                    </Text>
+                    <Text style={[styles.eventCount, { color: colors.secondaryText }]}>
+                      {purchasedEvents.length} {purchasedEvents.length === 1 ? 'evento' : 'eventos'}
+                    </Text>
                   </View>
-                </FadeInView>
-              </>
+                  <View style={styles.eventsGrid}>
+                    {purchasedEvents.map((event, index) => renderEventCard(event, index))}
+                  </View>
+                </View>
+              </FadeInView>
             )}
           </ScrollView>
 
-          <Modal
-            visible={showLocationModal}
-            transparent
-            animationType="fade"
-            onRequestClose={() => setShowLocationModal(false)}
-          >
-            <View style={styles.modalOverlay}>
-              <View style={styles.modalContent}>
-                <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>Seleccionar Ubicación</Text>
-                  <TouchableOpacity onPress={() => setShowLocationModal(false)}>
-                    <MaterialIcons name="close" size={24} color={EventuColors.black} />
-                  </TouchableOpacity>
-                </View>
-                <TouchableOpacity
-                  style={[styles.locationOption, styles.currentLocationOption]}
-                  onPress={async () => {
-                    await refreshLocation();
-                    if (currentLocation?.fullAddress) {
-                      setSelectedLocation(currentLocation.fullAddress);
-                    }
-                  }}
-                  disabled={locationLoading}
-                >
-                  <View style={styles.locationOptionLeft}>
-                    <MaterialIcons 
-                      name={locationLoading ? "hourglass-empty" : "my-location"} 
-                      size={20} 
-                      color={locationLoading ? EventuColors.mediumGray : EventuColors.magenta} 
-                    />
-                    <Text style={styles.locationOptionText}>
-                      {locationLoading ? 'Detectando ubicación...' : 'Usar mi ubicación actual'}
-                    </Text>
-                  </View>
-                  {locationLoading && (
-                    <ActivityIndicator size="small" color={EventuColors.magenta} />
-                  )}
-                </TouchableOpacity>
-                <View style={styles.locationDivider} />
-                <Text style={styles.locationSectionTitle}>Otras ubicaciones</Text>
-                {locations.map((location) => (
-                  <TouchableOpacity
-                    key={location}
-                    style={styles.locationOption}
-                    onPress={() => {
-                      setSelectedLocation(location);
-                      setShowLocationModal(false);
-                    }}
-                  >
-                    <Text style={styles.locationOptionText}>{location}</Text>
-                    {selectedLocation === location && (
-                      <MaterialIcons name="check" size={20} color={EventuColors.violet} />
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          </Modal>
+          {}
+          <View style={styles.floatingButtonContainer}>
+            <PressableCard
+              style={styles.floatingButton}
+              onPress={handleOpenEventuWebsite}
+              hapticFeedback={true}
+            >
+              <LinearGradient
+                colors={[EventuColors.magenta, EventuColors.hotPink]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.floatingButtonGradient}
+              >
+                <MaterialIcons name="shopping-cart" size={24} color={EventuColors.white} />
+                <Text style={styles.floatingButtonText}>Compra tus entradas aquí</Text>
+              </LinearGradient>
+            </PressableCard>
+          </View>
 
-          <Modal
-            visible={showFilterModal}
-            transparent
-            animationType="fade"
-            onRequestClose={() => setShowFilterModal(false)}
-          >
-            <View style={styles.modalOverlay}>
-              <View style={styles.modalContent}>
-                <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>Filtrar por precio</Text>
-                  <TouchableOpacity onPress={() => setShowFilterModal(false)}>
-                    <MaterialIcons name="close" size={24} color={EventuColors.black} />
-                  </TouchableOpacity>
-                </View>
-                {[{ key: 'all', label: 'Todos los precios' }, { key: 'low', label: 'Menos de $50' }, { key: 'medium', label: '$50 - $100' }, { key: 'high', label: 'Más de $100' }].map((option) => (
-                  <TouchableOpacity
-                    key={option.key}
-                    style={styles.filterOption}
-                    onPress={() => {
-                      setPriceFilter(option.key as any);
-                      setShowFilterModal(false);
-                    }}
-                  >
-                    <Text style={styles.filterOptionText}>{option.label}</Text>
-                    {priceFilter === option.key && (
-                      <MaterialIcons name="check" size={20} color={EventuColors.violet} />
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          </Modal>
         </View>
       </View>
     </>
@@ -498,11 +328,9 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: EventuColors.white,
   },
   backgroundGradient: {
     flex: 1,
-    backgroundColor: EventuColors.white,
   },
   header: {
     flexDirection: 'row',
@@ -511,6 +339,41 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 16,
+  },
+  headerCenter: {
+    flex: 1,
+    alignItems: 'center',
+    marginHorizontal: 12,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '800' as const,
+    color: EventuColors.black,
+    marginBottom: 4,
+  },
+  headerLocationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    backgroundColor: 'rgba(164, 46, 255, 0.08)',
+    borderRadius: 12,
+  },
+  headerLocationText: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: EventuColors.violet,
+    maxWidth: 180,
+  },
+  welcomeSection: {
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+  },
+  welcomeText: {
+    fontSize: 24,
+    fontWeight: '800' as const,
+    color: EventuColors.black,
   },
   notificationButton: {
     padding: 8,
@@ -562,7 +425,7 @@ const styles = StyleSheet.create({
     ...Shadows.sm,
   },
   scrollContent: {
-    paddingBottom: 20,
+    paddingBottom: Platform.OS === 'ios' ? 220 : 200, // Espacio suficiente para el botón flotante y la barra de navegación
   },
   searchSection: {
     paddingHorizontal: 20,
@@ -575,7 +438,6 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: EventuColors.white,
     borderRadius: 12,
     paddingHorizontal: 16,
     height: 50,
@@ -585,17 +447,16 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: EventuColors.black,
   },
   suggestionsContainer: {
     position: 'absolute',
     top: 58,
     left: 0,
     right: 0,
-    backgroundColor: EventuColors.white,
     borderRadius: Radius.xl,
     marginTop: 4,
     maxHeight: 300,
+    borderWidth: 1,
     ...Shadows.lg,
     overflow: 'hidden',
   },
@@ -606,16 +467,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: EventuColors.lightGray,
   },
   suggestionsTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: EventuColors.mediumGray,
   },
   clearHistoryText: {
     fontSize: 14,
-    color: EventuColors.magenta,
     fontWeight: '600',
   },
   suggestionItem: {
@@ -625,12 +483,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     gap: 12,
     borderBottomWidth: 1,
-    borderBottomColor: EventuColors.lightGray + '50',
   },
   suggestionText: {
     flex: 1,
     fontSize: 15,
-    color: EventuColors.black,
   },
   noSuggestions: {
     padding: 20,
@@ -638,7 +494,6 @@ const styles = StyleSheet.create({
   },
   noSuggestionsText: {
     fontSize: 14,
-    color: EventuColors.mediumGray,
     textAlign: 'center',
   },
   filterButton: {
@@ -679,6 +534,34 @@ const styles = StyleSheet.create({
     color: EventuColors.violet,
     opacity: 0.8,
   },
+  categoriesScroll: {
+    paddingHorizontal: 20,
+    gap: 10,
+  },
+  categoryChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: EventuColors.white,
+    borderWidth: 1,
+    borderColor: EventuColors.lightGray,
+    ...Shadows.sm,
+  },
+  categoryChipActive: {
+    backgroundColor: EventuColors.magenta,
+    borderColor: EventuColors.magenta,
+  },
+  categoryChipText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: EventuColors.mediumGray,
+  },
+  categoryChipTextActive: {
+    color: EventuColors.white,
+  },
   section: {
     marginBottom: 24,
   },
@@ -692,12 +575,10 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '800' as const,
-    color: EventuColors.black,
   },
   eventCount: {
     fontSize: 14,
     fontWeight: '600' as const,
-    color: EventuColors.mediumGray,
   },
   featuredScroll: {
     paddingLeft: 20,
@@ -710,100 +591,141 @@ const styles = StyleSheet.create({
   },
   eventCard: {
     width: CARD_WIDTH,
-    height: 340,
-    borderRadius: Radius['3xl'],
+    backgroundColor: EventuColors.white,
+    borderRadius: Radius['2xl'],
     overflow: 'hidden',
-    backgroundColor: EventuColors.black,
     ...Shadows.lg,
+    borderWidth: 1,
+    borderColor: EventuColors.lightGray,
   },
-  featuredCard: {
-    width: width * 0.8,
-    height: 340,
+  eventImageContainer: {
+    width: '100%',
+    height: 200,
+    position: 'relative',
   },
   eventImage: {
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
   },
+  imageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 60,
+    backgroundColor: 'transparent',
+  },
   dateBadge: {
     position: 'absolute',
-    top: 16,
-    right: 16,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    borderRadius: 12,
+    top: 12,
+    right: 12,
+    backgroundColor: EventuColors.white,
+    borderRadius: Radius.lg,
     paddingVertical: 8,
     paddingHorizontal: 12,
     alignItems: 'center',
-    zIndex: 2,
+    minWidth: 50,
+    ...Shadows.md,
   },
   dateBadgeDay: {
     fontSize: 20,
     fontWeight: '900' as const,
-    color: EventuColors.white,
-    lineHeight: 24,
+    color: EventuColors.magenta,
+    lineHeight: 22,
   },
   dateBadgeMonth: {
     fontSize: 11,
     fontWeight: '700' as const,
-    color: EventuColors.white,
+    color: EventuColors.violet,
     textTransform: 'uppercase',
+    marginTop: 2,
   },
-  eventGradient: {
+  categoryBadge: {
     position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: '60%',
-    justifyContent: 'flex-end',
-    padding: 20,
+    top: 12,
+    left: 12,
+    backgroundColor: EventuColors.magenta + '20',
+    borderRadius: Radius.full,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: EventuColors.magenta + '40',
   },
-  eventInfo: {
-    gap: 10,
+  categoryBadgeText: {
+    fontSize: 12,
+    fontWeight: '700' as const,
+    color: EventuColors.magenta,
+    textTransform: 'capitalize',
+  },
+  eventContent: {
+    padding: 16,
+    gap: 12,
   },
   eventTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '800' as const,
-    color: EventuColors.white,
-    lineHeight: 28,
+    color: EventuColors.black,
+    lineHeight: 26,
   },
-  eventDetails: {
+  eventMeta: {
+    gap: 8,
+  },
+  eventMetaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
-  eventVenue: {
+  eventMetaText: {
     fontSize: 14,
     fontWeight: '500' as const,
-    color: EventuColors.white,
-    opacity: 0.8,
+    color: EventuColors.darkGray,
+    flex: 1,
   },
   eventFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 8,
-    gap: 8,
+    marginTop: 4,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: EventuColors.lightGray,
   },
-  priceTag: {
-    backgroundColor: EventuColors.white,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+  priceContainer: {
+    gap: 2,
+  },
+  priceLabel: {
+    fontSize: 11,
+    fontWeight: '500' as const,
+    color: EventuColors.mediumGray,
+    textTransform: 'uppercase',
   },
   eventPrice: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '800' as const,
-    color: EventuColors.black,
+    color: EventuColors.magenta,
+  },
+  viewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: Radius.lg,
+    backgroundColor: EventuColors.magenta + '10',
+  },
+  viewButtonText: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: EventuColors.magenta,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   modalContent: {
-    backgroundColor: EventuColors.white,
     borderRadius: 20,
     padding: 24,
     width: '100%',
@@ -818,7 +740,6 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '800' as const,
-    color: EventuColors.black,
   },
   locationOption: {
     flexDirection: 'row',
@@ -826,10 +747,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: EventuColors.lightGray,
   },
   currentLocationOption: {
-    backgroundColor: 'rgba(164, 46, 255, 0.05)',
     borderRadius: 12,
     paddingHorizontal: 16,
     marginBottom: 8,
@@ -844,17 +763,14 @@ const styles = StyleSheet.create({
   locationOptionText: {
     fontSize: 16,
     fontWeight: '600' as const,
-    color: EventuColors.black,
   },
   locationDivider: {
     height: 1,
-    backgroundColor: EventuColors.lightGray,
     marginVertical: 12,
   },
   locationSectionTitle: {
     fontSize: 14,
     fontWeight: '600' as const,
-    color: EventuColors.mediumGray,
     marginBottom: 8,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -865,12 +781,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: EventuColors.lightGray,
   },
   filterOptionText: {
     fontSize: 16,
     fontWeight: '600' as const,
-    color: EventuColors.black,
   },
   loadingContainer: {
     flex: 1,
@@ -880,7 +794,6 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   loadingText: {
-    color: EventuColors.mediumGray,
     fontSize: 16,
   },
   errorContainer: {
@@ -892,7 +805,6 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   errorText: {
-    color: EventuColors.black,
     fontSize: 16,
     textAlign: 'center',
   },
@@ -916,12 +828,10 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   emptyText: {
-    color: EventuColors.black,
     fontSize: 18,
     fontWeight: '600' as const,
   },
   emptySubtext: {
-    color: EventuColors.mediumGray,
     fontSize: 14,
     textAlign: 'center',
   },
@@ -938,5 +848,44 @@ const styles = StyleSheet.create({
   },
   skeletonGrid: {
     gap: 16,
+  },
+  floatingButtonContainer: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 110 : 100, // Espacio sobre la barra de navegación (70px altura + 30px bottom en iOS = 100px, más 10px de margen)
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 1000,
+    paddingHorizontal: 20,
+  },
+  floatingButton: {
+    borderRadius: Radius['2xl'],
+    overflow: 'hidden',
+    ...Shadows.lg,
+  },
+  floatingButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    gap: 12,
+  },
+  floatingButtonText: {
+    color: EventuColors.white,
+    fontSize: 16,
+    fontWeight: '700' as const,
+  },
+  actionButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: Radius.xl,
+    marginTop: 16,
+    ...Shadows.md,
+  },
+  actionButtonText: {
+    color: EventuColors.white,
+    fontSize: 16,
+    fontWeight: '600' as const,
   },
 });

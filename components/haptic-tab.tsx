@@ -15,6 +15,9 @@ export function HapticTab(props: BottomTabBarButtonProps) {
         }
         props.onPressIn?.(ev);
       }}
+      onPress={(ev) => {
+        props.onPress?.(ev);
+      }}
       style={({ pressed }) => [
         props.style,
         {
@@ -23,8 +26,13 @@ export function HapticTab(props: BottomTabBarButtonProps) {
           alignItems: 'center',
           opacity: pressed ? 0.7 : 1,
           transform: [{ scale: pressed ? 0.95 : 1 }],
+          minHeight: 70,
+          minWidth: 70,
         },
       ]}
+      accessibilityRole="button"
+      accessibilityState={{ selected: props.accessibilityState?.selected }}
+      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
     />
   );
 }

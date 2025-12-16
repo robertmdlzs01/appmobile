@@ -1,7 +1,7 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import pool from '../config/database';
 
-export interface IEvent extends Document {
-  wordpressId: number;
+export interface Event {
+  id: string;
   name: string;
   subtitle?: string;
   description?: string;
@@ -17,114 +17,257 @@ export interface IEvent extends Document {
   instructions?: string[];
   availableTickets?: number;
   soldTickets?: number;
-  status: string;
-  slug: string;
-  featured?: boolean;
-  lastSyncedAt: Date;
-  createdAt: Date;
-  updatedAt: Date;
+  status?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-const EventSchema: Schema = new Schema(
-  {
-    wordpressId: {
-      type: Number,
-      required: true,
-      unique: true,
-      index: true,
-    },
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    subtitle: {
-      type: String,
-      trim: true,
-    },
-    description: {
-      type: String,
-      trim: true,
-    },
-    fullDescription: {
-      type: String,
-      trim: true,
-    },
-    date: {
-      type: String,
-      required: true,
-    },
-    time: {
-      type: String,
-      required: true,
-    },
-    location: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    price: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
-    category: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    images: [{
-      type: String,
-    }],
-    videoUrl: {
-      type: String,
-      default: null,
-    },
-    promoter: {
-      type: String,
-      trim: true,
-    },
-    instructions: [{
-      type: String,
-    }],
-    availableTickets: {
-      type: Number,
-      min: 0,
-    },
-    soldTickets: {
-      type: Number,
-      min: 0,
-      default: 0,
-    },
-    status: {
-      type: String,
-      required: true,
-      enum: ['publish', 'draft', 'private', 'pending'],
-      default: 'publish',
-    },
-    slug: {
-      type: String,
-      required: true,
-      unique: true,
-      index: true,
-    },
-    featured: {
-      type: Boolean,
-      default: false,
-    },
-    lastSyncedAt: {
-      type: Date,
-      default: Date.now,
-    },
-  },
-  {
-    timestamps: true,
+export interface EventsQueryParams {
+  page?: number;
+  limit?: number;
+  category?: string;
+  status?: string;
+  featured?: boolean;
+  dateFrom?: string;
+  dateTo?: string;
+  search?: string;
+}
+
+export class EventModel {
+  /**
+   * Obtiene eventos con filtros opcionales
+   */
+  static async getEvents(params?: EventsQueryParams): Promise<Event[]> {
+    try {
+      let query = `
+        SELECT 
+          id,
+          name,
+          subtitle,
+          description,
+          full_description as fullDescription,
+          date,
+          time,
+          location,
+          price,
+          category,
+          images,
+          video_url as videoUrl,
+          promoter,
+          instructions,
+          available_tickets as availableTickets,
+          sold_tickets as soldTickets,
+          status,
+          created_at as createdAt,
+          updated_at as updatedAt
+        FROM events
+        WHERE 1=1
+      `;
+
+      const queryParams: any[] = [];
+
+      if (params?.category) {
+        query += ' AND category = ?';
+        queryParams.push(params.category);
+      }
+
+      if (params?.status) {
+        query += ' AND status = ?';
+        queryParams.push(params.status);
+      }
+
+      if (params?.dateFrom) {
+        query += ' AND date >= ?';
+        queryParams.push(params.dateFrom);
+      }
+
+      if (params?.dateTo) {
+        query += ' AND date <= ?';
+        queryParams.push(params.dateTo);
+      }
+
+      if (params?.search) {
+        query += ` AND (
+          name LIKE ? OR 
+          description LIKE ? OR 
+          subtitle LIKE ? OR 
+          location LIKE ?
+        )`;
+        const searchTerm = `%${params.search}%`;
+        queryParams.push(searchTerm, searchTerm, searchTerm, searchTerm);
+      }
+
+      if (params?.featured) {
+        query += ' AND featured = 1';
+      }
+
+      query += ' ORDER BY date ASC, created_at DESC';
+
+      // Aplicar paginación
+      if (params?.limit) {
+        const offset = params.page ? (params.page - 1) * params.limit : 0;
+        query += ' LIMIT ? OFFSET ?';
+        queryParams.push(params.limit, offset);
+      }
+
+      const [rows] = await pool.execute(query, queryParams);
+
+      return (rows as any[]).map((row) => ({
+        ...row,
+        images: row.images ? JSON.parse(row.images) : [],
+        instructions: row.instructions ? JSON.parse(row.instructions) : [],
+      }));
+    } catch (error) {
+      console.error('Error al obtener eventos:', error);
+      throw error;
+    }
   }
-);
 
-EventSchema.index({ status: 1, date: 1 });
-EventSchema.index({ category: 1 });
-EventSchema.index({ featured: 1 });
-EventSchema.index({ lastSyncedAt: 1 });
+  /**
+   * Obtiene un evento por ID
+   */
+  static async getEventById(id: string): Promise<Event | null> {
+    try {
+      const [rows] = await pool.execute(
+        `
+        SELECT 
+          id,
+          name,
+          subtitle,
+          description,
+          full_description as fullDescription,
+          date,
+          time,
+          location,
+          price,
+          category,
+          images,
+          video_url as videoUrl,
+          promoter,
+          instructions,
+          available_tickets as availableTickets,
+          sold_tickets as soldTickets,
+          status,
+          created_at as createdAt,
+          updated_at as updatedAt
+        FROM events
+        WHERE id = ?
+        `,
+        [id]
+      );
 
-export default mongoose.model<IEvent>('Event', EventSchema);
+      const events = rows as any[];
+      if (events.length === 0) {
+        return null;
+      }
+
+      const event = events[0];
+      return {
+        ...event,
+        images: event.images ? JSON.parse(event.images) : [],
+        instructions: event.instructions ? JSON.parse(event.instructions) : [],
+      };
+    } catch (error) {
+      console.error('Error al obtener evento:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtiene eventos destacados
+   */
+  static async getFeaturedEvents(limit: number = 10): Promise<Event[]> {
+    try {
+      const [rows] = await pool.execute(
+        `
+        SELECT 
+          id,
+          name,
+          subtitle,
+          description,
+          full_description as fullDescription,
+          date,
+          time,
+          location,
+          price,
+          category,
+          images,
+          video_url as videoUrl,
+          promoter,
+          instructions,
+          available_tickets as availableTickets,
+          sold_tickets as soldTickets,
+          status,
+          created_at as createdAt,
+          updated_at as updatedAt
+        FROM events
+        WHERE featured = 1 AND status = 'published'
+        ORDER BY created_at DESC
+        LIMIT ?
+        `,
+        [limit]
+      );
+
+      return (rows as any[]).map((row) => ({
+        ...row,
+        images: row.images ? JSON.parse(row.images) : [],
+        instructions: row.instructions ? JSON.parse(row.instructions) : [],
+      }));
+    } catch (error) {
+      console.error('Error al obtener eventos destacados:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Cuenta el total de eventos (para paginación)
+   */
+  static async countEvents(params?: EventsQueryParams): Promise<number> {
+    try {
+      let query = 'SELECT COUNT(*) as total FROM events WHERE 1=1';
+      const queryParams: any[] = [];
+
+      if (params?.category) {
+        query += ' AND category = ?';
+        queryParams.push(params.category);
+      }
+
+      if (params?.status) {
+        query += ' AND status = ?';
+        queryParams.push(params.status);
+      }
+
+      if (params?.dateFrom) {
+        query += ' AND date >= ?';
+        queryParams.push(params.dateFrom);
+      }
+
+      if (params?.dateTo) {
+        query += ' AND date <= ?';
+        queryParams.push(params.dateTo);
+      }
+
+      if (params?.search) {
+        query += ` AND (
+          name LIKE ? OR 
+          description LIKE ? OR 
+          subtitle LIKE ? OR 
+          location LIKE ?
+        )`;
+        const searchTerm = `%${params.search}%`;
+        queryParams.push(searchTerm, searchTerm, searchTerm, searchTerm);
+      }
+
+      if (params?.featured) {
+        query += ' AND featured = 1';
+      }
+
+      const [rows] = await pool.execute(query, queryParams);
+      return (rows as any[])[0].total;
+    } catch (error) {
+      console.error('Error al contar eventos:', error);
+      throw error;
+    }
+  }
+}
+

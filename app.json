@@ -1,20 +1,20 @@
 {
   "expo": {
-    "name": "app-eventu",
-    "slug": "app-eventu",
+    "name": "Eventu.co",
+    "slug": "eventu-co",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "appeventu",
+    "scheme": "app-eventu",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Esta app necesita acceso a tu ubicación para mostrarte eventos cercanos a ti.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Esta app necesita acceso a tu ubicación para mostrarte eventos cercanos a ti.",
-        "NSCameraUsageDescription": "Esta app necesita acceso a tu cámara para tomar fotos de perfil.",
-        "NSPhotoLibraryUsageDescription": "Esta app necesita acceso a tu galería para seleccionar fotos de perfil."
+        "NSLocationWhenInUseUsageDescription": "Eventu.co necesita acceso a tu ubicación para mostrarte eventos cercanos a ti.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Eventu.co necesita acceso a tu ubicación para mostrarte eventos cercanos a ti.",
+        "NSCameraUsageDescription": "Eventu.co necesita acceso a tu cámara para escanear códigos QR y de barras de tickets.",
+        "NSPhotoLibraryUsageDescription": "Eventu.co necesita acceso a tu galería para seleccionar fotos de perfil."
       }
     },
     "android": {
@@ -36,7 +36,7 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/icon.png"
     },
     "plugins": [
       "expo-router",
@@ -55,14 +55,14 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Esta app necesita acceso a tu ubicación para mostrarte eventos cercanos a ti."
+          "locationAlwaysAndWhenInUsePermission": "Eventu.co necesita acceso a tu ubicación para mostrarte eventos cercanos a ti."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Esta app necesita acceso a tu galería para seleccionar fotos de perfil.",
-          "cameraPermission": "Esta app necesita acceso a tu cámara para tomar fotos de perfil."
+          "photosPermission": "Eventu.co necesita acceso a tu galería para seleccionar fotos de perfil.",
+          "cameraPermission": "Eventu.co necesita acceso a tu cámara para tomar fotos de perfil."
         }
       ]
     ],

@@ -114,11 +114,12 @@ export default function WelcomeScreen() {
         <View style={styles.content}>
           <View style={styles.header}>
             <ThemedText type="title" style={styles.title}>
-              ¡Bienvenido!
+              Eventu.co
             </ThemedText>
-            <ThemedText style={styles.description}>
-              Conecta con los mejores eventos y vive experiencias inolvidables en tu ciudad.
+            <ThemedText style={styles.subtitle}>
+            ¡Tickets a un Click!
             </ThemedText>
+            
           </View>
 
           <View style={styles.actions}>
@@ -137,7 +138,7 @@ export default function WelcomeScreen() {
                     },
                 ]}>
                 <ThemedText type="defaultSemiBold" style={styles.primaryButtonText}>
-                  Iniciar sesión
+                  Ingresar
                 </ThemedText>
                 </Pressable>
             </LinearGradient>
@@ -157,7 +158,7 @@ export default function WelcomeScreen() {
                   },
                 ]}>
                 <ThemedText type="defaultSemiBold" style={styles.primaryButtonText}>
-                  Crear cuenta
+                  Registrarse
                 </ThemedText>
               </Pressable>
             </LinearGradient>
@@ -224,10 +225,13 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   subtitle: {
-    fontSize: 16,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-    color: 'rgba(255,255,255,0.8)',
+    fontSize: 20,
+    letterSpacing: 0.5,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.95)',
+    textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 8,
   },
   title: {
     fontSize: 38,

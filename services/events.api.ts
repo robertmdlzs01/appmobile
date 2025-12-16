@@ -1,4 +1,4 @@
-import { apiService, ApiResponse } from './api';
+import { ApiResponse, apiService } from './api';
 
 export interface Event {
   id: string;
@@ -38,21 +38,42 @@ export const eventsApi = {
    * Obtiene lista de eventos con filtros opcionales
    */
   getEvents: async (params?: EventsQueryParams): Promise<ApiResponse<Event[]>> => {
-    return apiService.get<Event[]>('/events', params);
+    try {
+      return await apiService.get<Event[]>('/events', params);
+    } catch (error: any) {
+    return {
+        success: false,
+        message: error.message || 'Error al obtener eventos',
+    };
+    }
   },
 
   /**
    * Obtiene detalles de un evento específico
    */
   getEventById: async (id: string): Promise<ApiResponse<Event>> => {
-    return apiService.get<Event>(`/events/${id}`);
+    try {
+      return await apiService.get<Event>(`/events/${id}`);
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || 'Error al obtener evento',
+      };
+    }
   },
 
   /**
    * Obtiene eventos destacados
    */
   getFeaturedEvents: async (limit: number = 10): Promise<ApiResponse<Event[]>> => {
-    return apiService.get<Event[]>('/events/featured', { limit });
+    try {
+      return await apiService.get<Event[]>('/events/featured', { limit });
+    } catch (error: any) {
+    return {
+        success: false,
+        message: error.message || 'Error al obtener eventos destacados',
+    };
+    }
   },
 };
 
