@@ -7,7 +7,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useImagePicker } from '@/hooks/useImagePicker';
 import { useSafeAreaHeaderPadding } from '@/hooks/useSafeAreaInsets';
-import { useStaffPermissions } from '@/hooks/useStaffPermissions';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -47,15 +46,6 @@ export default function ProfileScreen() {
     { id: '6', icon: 'description', title: 'Política de Privacidad', subtitle: 'Leer política' },
   ];
 
-  // Verificar permisos de staff
-  const { isStaff } = useStaffPermissions();
-
-  // Opciones para staff/administradores (solo visible si el usuario es staff)
-  const staffItems = isStaff
-    ? [
-        { id: 'scan', icon: 'qr-code-scanner', title: 'Escanear Tickets', subtitle: 'Validar entradas con QR o código de barras', color: EventuColors.hotPink },
-      ]
-    : [];
 
   const handleMenuPress = (id: string) => {
     switch (id) {
@@ -76,9 +66,6 @@ export default function ProfileScreen() {
         break;
       case '6':
         router.push('/profile/privacy');
-        break;
-      case 'scan':
-        router.push('/staff');
         break;
       default:
         break;
@@ -223,53 +210,6 @@ export default function ProfileScreen() {
                 </View>
               </FadeInView>
 
-              {/* Sección de Staff/Administradores - Solo visible si el usuario es staff */}
-              {staffItems.length > 0 && (
-                <FadeInView delay={175}>
-                  <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>Herramientas de Staff</Text>
-                  </View>
-                  <View style={styles.menuContainer}>
-                    {staffItems.map((item, index) => (
-                    <AnimatedCard key={item.id} delay={50 * (index + 1)}>
-                      <PressableCard
-                        style={[
-                          styles.menuItem,
-                          {
-                            backgroundColor: EventuColors.white,
-                            borderWidth: 1,
-                            borderColor: EventuColors.lightGray,
-                          },
-                        ]}
-                        onPress={() => handleMenuPress(item.id)}
-                        hapticFeedback={true}
-                      >
-                        <View style={styles.menuItemLeft}>
-                          <View
-                            style={[
-                              styles.iconContainer,
-                              { backgroundColor: (item.color || EventuColors.magenta) + '20' },
-                            ]}>
-                            <MaterialIcons 
-                              name={item.icon as any} 
-                              size={20} 
-                              color={item.color || EventuColors.magenta} 
-                            />
-                          </View>
-                          <View style={styles.menuItemText}>
-                            <Text style={styles.menuItemTitle}>
-                              {item.title}
-                            </Text>
-                            <Text style={styles.menuItemSubtitle}>{item.subtitle}</Text>
-                          </View>
-                        </View>
-                        <MaterialIcons name="chevron-right" size={20} color={EventuColors.mediumGray} />
-                      </PressableCard>
-                    </AnimatedCard>
-                    ))}
-                  </View>
-                </FadeInView>
-              )}
 
               <FadeInView delay={200}>
                 <PressableCard

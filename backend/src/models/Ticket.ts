@@ -27,9 +27,7 @@ export interface TicketValidation {
 }
 
 export class TicketModel {
-  /**
-   * Obtiene tickets de un usuario
-   */
+  
   static async getUserTickets(userId: string): Promise<Ticket[]> {
     try {
       const [rows] = await pool.execute(
@@ -62,9 +60,7 @@ export class TicketModel {
     }
   }
 
-  /**
-   * Obtiene un ticket por ID
-   */
+  
   static async getTicketById(ticketId: string): Promise<Ticket | null> {
     try {
       const [rows] = await pool.execute(
@@ -97,9 +93,7 @@ export class TicketModel {
     }
   }
 
-  /**
-   * Obtiene la validación de un ticket
-   */
+  
   static async getTicketValidation(ticketId: string): Promise<TicketValidation | null> {
     try {
       const [rows] = await pool.execute(
@@ -136,9 +130,7 @@ export class TicketModel {
     }
   }
 
-  /**
-   * Obtiene el historial completo de validaciones (para staff)
-   */
+  
   static async getValidationHistory(
     limit: number = 100,
     offset: number = 0
@@ -173,9 +165,7 @@ export class TicketModel {
     }
   }
 
-  /**
-   * Valida/escanea un ticket
-   */
+  
   static async validateTicket(
     ticketId: string,
     staffId: string,

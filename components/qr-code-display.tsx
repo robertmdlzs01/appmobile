@@ -27,12 +27,28 @@ export function QRCodeDisplay({
   scanned = false,
   style,
 }: QRCodeDisplayProps) {
-  // Determinar colores según el estado
-  const qrColor = color || (validated ? '#10B981' : scanned ? '#F59E0B' : '#000000');
-  const qrBackground = backgroundColor || (validated ? 'rgba(16, 185, 129, 0.05)' : scanned ? 'rgba(245, 158, 11, 0.05)' : '#FFFFFF');
   
-  // Convertir payload a string si es objeto
-  const qrValue = typeof payload === 'string' ? payload : JSON.stringify(payload);
+  
+  const qrColor = color || (validated ? '#10B981' : scanned ? '#F59E0B' : '#000000');
+  const qrBackground = backgroundColor || (validated ? 'rgba(16, 185, 129, 0.08)' : scanned ? 'rgba(245, 158, 11, 0.05)' : '#FFFFFF');
+  
+  
+  
+  
+  
+  let qrValue: string;
+  if (typeof payload === 'string') {
+    qrValue = payload;
+  } else if (payload && typeof payload === 'object') {
+    
+    if ('url' in payload && typeof payload.url === 'string') {
+      qrValue = payload.url;
+    } else {
+      qrValue = JSON.stringify(payload);
+    }
+  } else {
+    qrValue = '';
+  }
   
   return (
     <View style={[styles.container, style]}>
@@ -53,7 +69,7 @@ export function QRCodeDisplay({
           logoBackgroundColor="transparent"
           logoMargin={2}
           quietZone={10}
-          ecl="M" // Error Correction Level: Medium
+          ecl="M" 
         />
       </View>
     </View>
@@ -81,7 +97,7 @@ export function QRCodeDisplayWithLoading({
   if (error) {
     return (
       <View style={[styles.container, styles.errorContainer, props.style]}>
-        {/* Mostrar error visual */}
+        {}
       </View>
     );
   }

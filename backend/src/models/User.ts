@@ -28,9 +28,7 @@ export interface UpdateUserData {
 }
 
 export class UserModel {
-  /**
-   * Crea un nuevo usuario
-   */
+  
   static async createUser(userData: CreateUserData): Promise<User> {
     try {
       const { email, name, password, phone, role = 'user' } = userData;
@@ -68,9 +66,7 @@ export class UserModel {
     }
   }
 
-  /**
-   * Obtiene un usuario por ID
-   */
+  
   static async getUserById(id: string): Promise<User | null> {
     try {
       const [rows] = await pool.execute(
@@ -98,9 +94,7 @@ export class UserModel {
     }
   }
 
-  /**
-   * Obtiene un usuario por email
-   */
+  
   static async getUserByEmail(email: string): Promise<User | null> {
     try {
       const [rows] = await pool.execute(
@@ -129,9 +123,7 @@ export class UserModel {
     }
   }
 
-  /**
-   * Verifica credenciales de login
-   */
+  
   static async verifyCredentials(email: string, password: string): Promise<User | null> {
     try {
       const user = await this.getUserByEmail(email);
@@ -153,9 +145,7 @@ export class UserModel {
     }
   }
 
-  /**
-   * Actualiza un usuario
-   */
+  
   static async updateUser(userId: string, userData: UpdateUserData): Promise<User> {
     try {
       const updates: string[] = [];
@@ -195,9 +185,7 @@ export class UserModel {
     }
   }
 
-  /**
-   * Cambia la contraseña de un usuario
-   */
+  
   static async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<boolean> {
     try {
       const user = await this.getUserById(userId);
@@ -238,9 +226,7 @@ export class UserModel {
     }
   }
 
-  /**
-   * Verifica si un usuario tiene rol de staff o admin
-   */
+  
   static async isStaff(userId: string): Promise<boolean> {
     try {
       const user = await this.getUserById(userId);

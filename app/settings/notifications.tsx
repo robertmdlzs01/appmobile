@@ -12,8 +12,10 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useSafeAreaHeaderPadding } from '@/hooks/useSafeAreaInsets';
 
 export default function NotificationSettingsScreen() {
+  const { paddingTop: safeAreaPaddingTop } = useSafeAreaHeaderPadding();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [pushNotifications, setPushNotifications] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(false);
@@ -27,7 +29,7 @@ export default function NotificationSettingsScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: safeAreaPaddingTop + 16 }]}>
           <Pressable style={styles.iconButton} onPress={() => router.back()}>
             <MaterialIcons name="arrow-back" size={24} color={EventuColors.black} />
           </Pressable>
@@ -209,7 +211,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 10,
     paddingBottom: 20,
   },
   iconButton: {

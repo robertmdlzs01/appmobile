@@ -34,9 +34,7 @@ export interface EventsQueryParams {
 }
 
 export const eventsApi = {
-  /**
-   * Obtiene lista de eventos con filtros opcionales
-   */
+  
   getEvents: async (params?: EventsQueryParams): Promise<ApiResponse<Event[]>> => {
     try {
       return await apiService.get<Event[]>('/events', params);
@@ -48,9 +46,7 @@ export const eventsApi = {
     }
   },
 
-  /**
-   * Obtiene detalles de un evento específico
-   */
+  
   getEventById: async (id: string): Promise<ApiResponse<Event>> => {
     try {
       return await apiService.get<Event>(`/events/${id}`);
@@ -62,9 +58,7 @@ export const eventsApi = {
     }
   },
 
-  /**
-   * Obtiene eventos destacados
-   */
+  
   getFeaturedEvents: async (limit: number = 10): Promise<ApiResponse<Event[]>> => {
     try {
       return await apiService.get<Event[]>('/events/featured', { limit });

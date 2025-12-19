@@ -1,169 +1,156 @@
 import { ThemedText } from '@/components/themed-text';
-import Colors, { EventuColors } from '@/constants/theme';
-import { Radius } from '@/constants/theme-extended';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { EventuColors } from '@/constants/theme';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { Dimensions, Image, Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
-  interpolate,
-  SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
+import { Path, Svg } from 'react-native-svg';
 
 const { width } = Dimensions.get('window');
 
 export default function WelcomeScreen() {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
-
-  const backgroundGradient: [string, string, string] = [
-    EventuColors.violet + 'AA', 
-    EventuColors.magenta + 'AA',
-    EventuColors.hotPink + 'AA',
-  ];
-  const primaryBorderGradient: [string, string] = [
-    EventuColors.fuchsia + '66', 
-    EventuColors.violet + '77',
-  ];
-
-  const sparkleValue0 = useSharedValue(0);
-  const sparkleValue1 = useSharedValue(0);
-  const sparkleValue2 = useSharedValue(0);
-  const sparkleValue3 = useSharedValue(0);
-  const sparkleValue4 = useSharedValue(0);
-  const sparkleValue5 = useSharedValue(0);
-  const sparkleValue6 = useSharedValue(0);
-  const sparkleValue7 = useSharedValue(0);
-  const sparkleValue8 = useSharedValue(0);
-  const sparkleValue9 = useSharedValue(0);
-
-  const sparkleValuesRef = useRef([
-    sparkleValue0,
-    sparkleValue1,
-    sparkleValue2,
-    sparkleValue3,
-    sparkleValue4,
-    sparkleValue5,
-    sparkleValue6,
-    sparkleValue7,
-    sparkleValue8,
-    sparkleValue9,
-  ]);
+  const waveOffset = useSharedValue(0);
+  const buttonScale = useSharedValue(1);
+  const fadeIn = useSharedValue(0);
 
   useEffect(() => {
-    const durations = [3200, 2600, 3800, 2900, 3400, 3000, 3100, 3600, 2800, 3300];
-    sparkleValuesRef.current.forEach((value, index) => {
-      value.value = withRepeat(withTiming(1, { duration: durations[index], easing: Easing.inOut(Easing.quad) }), -1, true);
-    });
+    fadeIn.value = withTiming(1, { duration: 800 });   
+    waveOffset.value = withRepeat(
+      withTiming(width, { duration: 10000, easing: Easing.linear }),
+      -1,
+      false
+    );
   }, []);
 
-  const useSparkleStyle = (shared: SharedValue<number>, translateX = 0, translateY = 0, amplitude = 12) =>
-    useAnimatedStyle(() => ({
-      opacity: interpolate(shared.value, [0, 0.5, 1], [0.2, 1, 0.2]),
-      transform: [
-        { scale: interpolate(shared.value, [0, 0.5, 1], [0.9, 1.2, 0.9]) },
-        { translateY: translateY + interpolate(shared.value, [0, 1], [-amplitude / 2, amplitude / 2]) },
-        { translateX: translateX + interpolate(shared.value, [0, 1], [-amplitude / 3, amplitude / 3]) },
-      ],
-    }));
+  const waveAnimatedStyle = useAnimatedStyle(() => {
+    const x = waveOffset.value;
+    return {
+      transform: [{ translateX: x }],
+    };
+  });
+  
+  const waveAnimatedStyle2 = useAnimatedStyle(() => {
+    const x = waveOffset.value - width;
+    return {
+      transform: [{ translateX: x }],
+    };
+  });
 
-  const sparkleStyles = [
-    { style: useSparkleStyle(sparkleValue0, -40, -20, 10), extra: styles.sparkleOne },
-    { style: useSparkleStyle(sparkleValue1, 50, 10, 14), extra: styles.sparkleTwo },
-    { style: useSparkleStyle(sparkleValue2, 0, 30, 12), extra: styles.sparkleThree },
-    { style: useSparkleStyle(sparkleValue3, -10, -35, 16), extra: styles.sparkleFour },
-    { style: useSparkleStyle(sparkleValue4, 32, 26, 10), extra: styles.sparkleFive },
-    { style: useSparkleStyle(sparkleValue5, -50, 12, 14), extra: styles.sparkleSix },
-    { style: useSparkleStyle(sparkleValue6, -12, -48, 12), extra: styles.sparkleSeven },
-    { style: useSparkleStyle(sparkleValue7, 18, -52, 10), extra: styles.sparkleEight },
-    { style: useSparkleStyle(sparkleValue8, 46, -40, 12), extra: styles.sparkleNine },
-    { style: useSparkleStyle(sparkleValue9, -60, -28, 9), extra: styles.sparkleTen },
-  ];
+  const buttonAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: buttonScale.value }],
+    opacity: fadeIn.value,
+  }));
+
+  const contentAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: fadeIn.value,
+    transform: [{ translateY: (1 - fadeIn.value) * 20 }],
+  }));
+
+  const handleContinue = () => {
+    buttonScale.value = withTiming(0.95, { duration: 100 });
+    
+    setTimeout(() => {
+      buttonScale.value = withTiming(1, { duration: 100 });
+      router.push('/login');
+    }, 150);
+  };
 
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={backgroundGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-        style={styles.background}>
-        <View style={[styles.heroBlob, styles.heroBlobPrimary, { backgroundColor: EventuColors.violet + '22' }]} />
-        <LinearGradient
-          colors={[EventuColors.fuchsia + '55', EventuColors.violet + '22']}
-          start={{ x: 0.2, y: 0.1 }}
-          end={{ x: 0.8, y: 0.9 }}
-          style={styles.heroBlobSecondary}
-          />
-        {sparkleStyles.map(({ style, extra }, index) => (
-          <Animated.View key={`sparkle-${index}`} style={[styles.sparkle, extra, style]} />
-        ))}
-        <View style={styles.logoContainer}>
-          <Image
-            source={require('@/assets/images/eventu-logo.png')}
-            style={styles.logo}
-            resizeMode="contain"
-            resizeMethod="resize"
-          />
-        </View>
-        <View style={styles.content}>
+        colors={[EventuColors.magenta, EventuColors.hotPink, EventuColors.violet]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.background}
+      >
+        <Animated.View style={[styles.wavyContainer, waveAnimatedStyle]}>
+          <Svg width={width * 2} height={300} style={styles.wavySvg} viewBox={`0 0 ${width * 2} 300`}>
+            <Path
+              d={`M0,100 Q${width * 0.25},50 ${width * 0.5},100 T${width},100 T${width * 1.5},100`}
+              fill="none"
+              stroke="rgba(255,255,255,0.5)"
+              strokeWidth="2"
+            />
+            <Path
+              d={`M0,130 Q${width * 0.25},80 ${width * 0.5},130 T${width},130 T${width * 1.5},130`}
+              fill="none"
+              stroke="rgba(255,255,255,0.5)"
+              strokeWidth="2"
+            />
+            <Path
+              d={`M0,160 Q${width * 0.25},110 ${width * 0.5},160 T${width},160 T${width * 1.5},160`}
+              fill="none"
+              stroke="rgba(255,255,255,0.5)"
+              strokeWidth="2"
+            />
+          </Svg>
+        </Animated.View>
+        
+        <Animated.View style={[styles.wavyContainer, waveAnimatedStyle2]}>
+          <Svg width={width * 2} height={300} style={styles.wavySvg} viewBox={`0 0 ${width * 2} 300`}>
+            <Path
+              d={`M0,100 Q${width * 0.25},50 ${width * 0.5},100 T${width},100 T${width * 1.5},100`}
+              fill="none"
+              stroke="rgba(255,255,255,0.5)"
+              strokeWidth="2"
+            />
+            <Path
+              d={`M0,130 Q${width * 0.25},80 ${width * 0.5},130 T${width},130 T${width * 1.5},130`}
+              fill="none"
+              stroke="rgba(255,255,255,0.5)"
+              strokeWidth="2"
+            />
+            <Path
+              d={`M0,160 Q${width * 0.25},110 ${width * 0.5},160 T${width},160 T${width * 1.5},160`}
+              fill="none"
+              stroke="rgba(255,255,255,0.5)"
+              strokeWidth="2"
+            />
+          </Svg>
+        </Animated.View>
+
+        <Animated.View style={[styles.content, contentAnimatedStyle]}>
           <View style={styles.header}>
+            <View style={styles.logoContainer}>
+              <Image
+                source={require('@/assets/images/icon.png')}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+            </View>
             <ThemedText type="title" style={styles.title}>
               Eventu.co
             </ThemedText>
             <ThemedText style={styles.subtitle}>
-            ¡Tickets a un Click!
+              ¡Tickets a un Click!
             </ThemedText>
-            
           </View>
 
-          <View style={styles.actions}>
-            <LinearGradient
-              colors={primaryBorderGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.primaryButtonBorder}>
-                <Pressable
-                onPress={() => router.push('/login')}
-                  style={({ pressed }) => [
-                  styles.primaryButton,
-                    {
-                    backgroundColor: colors.tint + 'AA',
-                      shadowColor: colors.tint + '66',
-                    },
-                ]}>
-                <ThemedText type="defaultSemiBold" style={styles.primaryButtonText}>
-                  Ingresar
-                </ThemedText>
-                </Pressable>
-            </LinearGradient>
-
-            <LinearGradient
-              colors={primaryBorderGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.primaryButtonBorder}>
-              <Pressable
-                onPress={() => router.push('/register')}
-                style={({ pressed }) => [
-                  styles.primaryButton,
-                  {
-                    backgroundColor: colors.tint + 'AA',
-                    shadowColor: colors.tint + '66',
-                  },
-                ]}>
-                <ThemedText type="defaultSemiBold" style={styles.primaryButtonText}>
-                  Registrarse
-                </ThemedText>
-              </Pressable>
-            </LinearGradient>
-          </View>
-        </View>
+          <Animated.View style={buttonAnimatedStyle}>
+            <Pressable
+              onPress={handleContinue}
+              style={({ pressed }) => [
+                styles.continueButton,
+                pressed && styles.continueButtonPressed,
+              ]}
+            >
+              <ThemedText type="defaultSemiBold" style={styles.continueButtonText}>
+                Continuar
+              </ThemedText>
+              <View style={styles.continueButtonIcon}>
+                <MaterialIcons name="arrow-forward" size={18} color="#FFFFFF" />
+              </View>
+            </Pressable>
+          </Animated.View>
+        </Animated.View>
       </LinearGradient>
     </View>
   );
@@ -175,158 +162,102 @@ const styles = StyleSheet.create({
   },
   background: {
     flex: 1,
-    paddingHorizontal: 28,
-    paddingTop: 20,
-    paddingBottom: 40,
-    justifyContent: 'space-between',
+    paddingTop: 60,
   },
-  heroBlob: {
+  wavyContainer: {
     position: 'absolute',
-    borderRadius: width,
-    opacity: 0.65,
+    top: 0,
+    left: 0,
+    width: width * 2,
+    height: 300,
+    opacity: 0.3,
   },
-  heroBlobPrimary: {
-    width: width * 0.95,
-    height: width * 0.95,
-    top: -width * 0.3,
-    left: -width * 0.3,
-  },
-  heroBlobSecondary: {
+  wavySvg: {
     position: 'absolute',
-    width: width * 0.75,
-    height: width * 0.75,
-    borderRadius: width,
-    top: width * 0.35,
-    right: -width * 0.25,
-    opacity: 0.7,
   },
   content: {
     flex: 1,
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    gap: 48,
-    paddingBottom: 40,
-  },
-  logoContainer: {
-    position: 'absolute',
-    top: 100,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-    zIndex: 1,
-  },
-  logo: {
-    width: width * 0.9,
-    height: (width * 0.9) * 0.414, 
+    paddingHorizontal: 32,
+    paddingTop: 60,
+    paddingBottom: 60,
+    justifyContent: 'space-between',
   },
   header: {
-    gap: 18,
+    gap: 20,
     alignItems: 'center',
-    width: '100%',
+    justifyContent: 'center',
+    flex: 1,
   },
-  subtitle: {
-    fontSize: 20,
-    letterSpacing: 0.5,
-    fontWeight: '700',
-    color: 'rgba(255,255,255,0.95)',
-    textAlign: 'center',
-    marginTop: 8,
-    marginBottom: 8,
+  logoContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 30,
+    backgroundColor: EventuColors.white,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: EventuColors.black,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logo: {
+    width: '100%',
+    height: '100%',
   },
   title: {
-    fontSize: 38,
-    lineHeight: 44,
-    color: '#ffffff',
+    fontSize: 42,
+    fontWeight: '800',
+    color: EventuColors.white,
+    marginBottom: 8,
+    letterSpacing: -0.5,
     textAlign: 'center',
   },
-  description: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: 'rgba(255,255,255,0.78)',
+  subtitle: {
+    fontSize: 17,
+    lineHeight: 26,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontWeight: '400',
     textAlign: 'center',
+
   },
-  actions: {
-    gap: 18,
-    width: '100%',
-    alignItems: 'center',
-  },
-  primaryButtonBorder: {
-    borderRadius: Radius['3xl'],
-    padding: 2,
-    width: '100%',
-  },
-  primaryButton: {
-    paddingVertical: 18,
-    borderRadius: Radius['3xl'],
+  continueButton: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.28,
-    shadowRadius: 24,
-    elevation: 14,
-  },
-  primaryButtonText: {
-    color: '#ffffff',
-    fontSize: 18,
-  },
-  secondaryButton: {
-    borderRadius: Radius['3xl'],
-    borderWidth: 1.5,
-    overflow: 'hidden',
-  },
-  secondaryButtonGradient: {
+    backgroundColor: EventuColors.white,
+    borderRadius: 999,
     paddingVertical: 18,
+    paddingHorizontal: 36,
+    gap: 14,
+    shadowColor: EventuColors.black,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  continueButtonPressed: {
+    opacity: 0.9,
+    transform: [{ scale: 0.98 }],
+  },
+  continueButtonText: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: EventuColors.black,
+  },
+  continueButtonIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: EventuColors.magenta,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  secondaryButtonText: {
-    fontSize: 18,
-  },
-  sparkle: {
-    position: 'absolute',
-    width: 12,
-    height: 12,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.85)',
-  },
-  sparkleOne: {
-    top: width * 0.18,
-    left: width * 0.2,
-  },
-  sparkleTwo: {
-    top: width * 0.45,
-    right: width * 0.22,
-  },
-  sparkleThree: {
-    bottom: width * 0.3,
-    left: width * 0.1,
-  },
-  sparkleFour: {
-    top: width * 0.28,
-    left: width * 0.55,
-  },
-  sparkleFive: {
-    bottom: width * 0.22,
-    right: width * 0.18,
-  },
-  sparkleSix: {
-    top: width * 0.55,
-    left: width * 0.08,
-  },
-  sparkleSeven: {
-    top: width * 0.12,
-    left: width * 0.45,
-  },
-  sparkleEight: {
-    top: width * 0.08,
-    right: width * 0.18,
-  },
-  sparkleNine: {
-    top: width * 0.22,
-    right: width * 0.08,
-  },
-  sparkleTen: {
-    top: width * 0.14,
-    left: width * 0.05,
+    shadowColor: EventuColors.magenta,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
 });

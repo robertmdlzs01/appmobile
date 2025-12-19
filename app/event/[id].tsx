@@ -9,8 +9,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import * as Sharing from 'expo-sharing';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Alert, Dimensions, Platform, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { mockTickets } from '@/services/mockTickets';
 
 function VideoSection({ videoUrl }: { videoUrl: string }) {
   const player = useVideoPlayer(videoUrl, (player) => {
@@ -139,25 +140,27 @@ export default function EventDetailScreen() {
   const eventId = Array.isArray(id) ? id[0] : id;
   const event = eventsData[eventId ?? '1'] || eventsData['1'];
 
+  // Encontrar el ticket correspondiente a este evento
+  const ticket = useMemo(() => {
+    return mockTickets.find(t => t.eventId === eventId);
+  }, [eventId]);
+
   const handleViewTicket = () => {
-    // Redirigir a la pantalla de Mis Entradas
-    router.push('/(tabs)/tickets');
+    // Redirigir directamente al código QR del ticket
+    if (ticket) {
+      router.push(`/ticket/${ticket.id}`);
+    } else {
+      // Si no hay ticket, redirigir a la lista de tickets
+      router.push('/(tabs)/tickets');
+    }
   };
 
-  const handleShare = async () => {
-    try {
-      const isAvailable = await Sharing.isAvailableAsync();
-      if (isAvailable) {
-        await Sharing.shareAsync({
-          message: `¡Mira este evento increíble! ${event.name} - ${event.subtitle}. ${event.date} en ${event.location}`,
-          url: `https://eventu.co/event/${event.id}`,
-        });
-      } else {
-        Alert.alert('Error', 'La función de compartir no está disponible en este dispositivo');
-      }
-    } catch (error) {
-      console.error('Error sharing:', error);
-      Alert.alert('Error', 'No se pudo compartir el evento');
+  const handleTransfer = () => {
+    // Redirigir a la pantalla de transferencia
+    if (ticket) {
+      router.push(`/tickets/transfer?ticketId=${ticket.id}`);
+    } else {
+      Alert.alert('Error', 'No se encontró un ticket para este evento');
     }
   };
 
@@ -237,33 +240,44 @@ export default function EventDetailScreen() {
         {}
         <View style={styles.summaryWrapper}>
           <View style={styles.summaryCard}>
-            <View style={styles.summaryHeader}>
-              <View style={styles.summaryTitleBlock}>
-                <Text style={styles.summaryTitle}>
-                  {event.name}
-                </Text>
-                <Text style={styles.summarySubtitle}>{event.subtitle}</Text>
+            <View style={styles.summaryTitleBlock}>
+              <Text style={styles.summaryTitle}>
+                {event.name}
+              </Text>
+              <Text style={styles.summarySubtitle}>{event.subtitle}</Text>
+            </View>
+            
+            <View style={styles.summaryMetaContainer}>
+              <View style={styles.summaryMetaItem}>
+                <MaterialIcons name="event" size={20} color={EventuColors.magenta} />
+                <View style={styles.metaTextContainer}>
+                  <Text style={styles.metaLabel}>Fecha</Text>
+                  <Text style={styles.metaValue}>{event.date}</Text>
+                </View>
               </View>
-              <View style={styles.summaryPriceBlock}>
-                <Text style={styles.summaryPriceLabel}>Desde</Text>
-                <Text style={[styles.summaryPriceValue, { color: EventuColors.magenta }]}>
-                  {event.price}
-                </Text>
+              
+              <View style={styles.summaryMetaItem}>
+                <MaterialIcons name="schedule" size={20} color={EventuColors.magenta} />
+                <View style={styles.metaTextContainer}>
+                  <Text style={styles.metaLabel}>Hora</Text>
+                  <Text style={styles.metaValue}>{event.time}</Text>
+                </View>
+              </View>
+              
+              <View style={styles.summaryMetaItem}>
+                <MaterialIcons name="place" size={20} color={EventuColors.magenta} />
+                <View style={styles.metaTextContainer}>
+                  <Text style={styles.metaLabel}>Ubicación</Text>
+                  <Text style={styles.metaValue}>{event.location}</Text>
+                </View>
               </View>
             </View>
-            <View style={styles.summaryMetaRow}>
-              <View style={styles.summaryMetaChip}>
-                <MaterialIcons name="event" size={14} color={EventuColors.magenta} />
-                <Text style={styles.summaryMetaText}>{event.date}</Text>
-              </View>
-              <View style={styles.summaryMetaChip}>
-                <MaterialIcons name="schedule" size={14} color={EventuColors.magenta} />
-                <Text style={styles.summaryMetaText}>{event.time}</Text>
-              </View>
-              <View style={styles.summaryMetaChip}>
-                <MaterialIcons name="place" size={14} color={EventuColors.magenta} />
-                <Text style={styles.summaryMetaText}>{event.location}</Text>
-              </View>
+            
+            <View style={styles.priceContainer}>
+              <Text style={styles.summaryPriceLabel}>Desde</Text>
+              <Text style={[styles.summaryPriceValue, { color: EventuColors.magenta }]}>
+                {event.price}
+              </Text>
             </View>
           </View>
         </View>
@@ -417,12 +431,12 @@ export default function EventDetailScreen() {
             </View>
           </TouchableOpacity>
           <PressableCard
-            style={[styles.shareButton, styles.secondaryButton, { borderColor: EventuColors.magenta }]}
-            onPress={handleShare}
+            style={[styles.shareButton, styles.secondaryButton]}
+            onPress={handleTransfer}
           >
-            <MaterialIcons name="share" size={18} color={EventuColors.magenta} />
+            <MaterialIcons name="swap-horiz" size={20} color={EventuColors.magenta} />
             <Text style={[styles.shareButtonText, { color: EventuColors.magenta }]}>
-              Compartir
+              Transferir
             </Text>
           </PressableCard>
         </View>
@@ -489,89 +503,101 @@ const styles = StyleSheet.create({
     borderRadius: Radius['3xl'],
     borderWidth: 1,
     borderColor: EventuColors.lightGray,
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    gap: 16,
+    padding: 24,
+    gap: 20,
     backgroundColor: EventuColors.white,
     ...Shadows.lg,
   },
-  summaryHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 16,
-  },
   summaryTitleBlock: {
-    flex: 1,
-    gap: 4,
+    gap: 8,
+    paddingBottom: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: EventuColors.lightGray + '40',
   },
   summaryTitle: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '800',
     color: EventuColors.black,
+    lineHeight: 30,
+    letterSpacing: -0.5,
   },
   summarySubtitle: {
-    fontSize: 13,
+    fontSize: 15,
     color: EventuColors.mediumGray,
+    lineHeight: 20,
   },
-  summaryPriceBlock: {
+  summaryMetaContainer: {
+    gap: 18,
+  },
+  summaryMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  metaTextContainer: {
+    flex: 1,
+    gap: 3,
+  },
+  metaLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: EventuColors.mediumGray,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 2,
+  },
+  metaValue: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: EventuColors.black,
+    lineHeight: 22,
+  },
+  priceContainer: {
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: EventuColors.lightGray + '40',
     alignItems: 'flex-end',
-    gap: 2,
   },
   summaryPriceLabel: {
     fontSize: 12,
     textTransform: 'uppercase',
-    letterSpacing: 0.6,
+    letterSpacing: 0.8,
     color: EventuColors.mediumGray,
+    fontWeight: '600',
+    marginBottom: 4,
   },
   summaryPriceValue: {
-    fontSize: 22,
+    fontSize: 28,
     fontWeight: '800',
-  },
-  summaryMetaRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  summaryMetaChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: Radius.xl,
-    backgroundColor: 'rgba(164, 46, 255, 0.08)',
-  },
-  summaryMetaText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: EventuColors.black,
+    letterSpacing: -0.5,
   },
   infoCard: {
     marginHorizontal: 20,
-    marginTop: 20,
+    marginTop: 24,
     borderRadius: Radius['3xl'],
     padding: 24,
     paddingBottom: 100,
-    gap: 24,
+    gap: 28,
     backgroundColor: EventuColors.white,
     borderWidth: 1,
     borderColor: EventuColors.lightGray,
     ...Shadows.md,
   },
   eventDetailsSection: {
-    gap: 12,
+    gap: 16,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '800',
     color: EventuColors.black,
-    marginBottom: 8,
+    marginBottom: 4,
+    letterSpacing: -0.3,
   },
   description: {
     fontSize: 15,
     lineHeight: 24,
-    color: EventuColors.mediumGray,
+    color: EventuColors.darkGray,
+    letterSpacing: 0.1,
   },
   showMore: {
     fontSize: 14,
@@ -652,21 +678,24 @@ const styles = StyleSheet.create({
     color: EventuColors.white,
   },
   instructionsSection: {
-    gap: 12,
+    gap: 16,
+    paddingTop: 8,
   },
   instructionsList: {
-    gap: 12,
+    gap: 14,
   },
   instructionItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 12,
+    gap: 14,
+    paddingVertical: 4,
   },
   instructionText: {
     flex: 1,
-    fontSize: 14,
-    lineHeight: 20,
-    color: EventuColors.mediumGray,
+    fontSize: 15,
+    lineHeight: 22,
+    color: EventuColors.darkGray,
+    fontWeight: '500',
   },
   buyTicketContainer: {
     position: 'absolute',
@@ -695,15 +724,20 @@ const styles = StyleSheet.create({
     backgroundColor: EventuColors.magenta,
   },
   secondaryButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
+    backgroundColor: EventuColors.white,
+    borderWidth: 2,
+    borderColor: EventuColors.magenta,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 18,
     borderRadius: Radius.xl,
-    ...Shadows.md,
+    shadowColor: EventuColors.magenta,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   shareButton: {
     flex: 1,
@@ -719,8 +753,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   shareButtonText: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: 0.2,
   },
   skeletonContainer: {
     padding: 0,

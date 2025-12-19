@@ -1,12 +1,4 @@
-/**
- * Script para sincronizar eventos desde WordPress a la base de datos de Eventu
- * 
- * Uso:
- *   npm run sync:wordpress
- * 
- * O desde Node:
- *   ts-node scripts/sync-wordpress.ts
- */
+
 
 import dotenv from 'dotenv';
 import mysql from 'mysql2/promise';

@@ -30,9 +30,7 @@ export interface LoginData {
 }
 
 export const authApi = {
-  /**
-   * Registra un nuevo usuario
-   */
+  
   async register(data: RegisterData): Promise<ApiResponse<LoginResponse>> {
     try {
       return await apiService.post<LoginResponse>('/auth/register', data);
@@ -44,9 +42,7 @@ export const authApi = {
     }
   },
 
-  /**
-   * Inicia sesión
-   */
+  
   async login(data: LoginData): Promise<ApiResponse<LoginResponse>> {
     try {
       return await apiService.post<LoginResponse>('/auth/login', data);
@@ -58,9 +54,7 @@ export const authApi = {
     }
   },
 
-  /**
-   * Refresca el token (requiere autenticación)
-   */
+  
   async refreshToken(): Promise<ApiResponse<LoginResponse>> {
     try {
       return await apiService.post<LoginResponse>('/auth/refresh');
@@ -72,9 +66,7 @@ export const authApi = {
     }
   },
 
-  /**
-   * Obtiene el usuario actual (requiere autenticación)
-   */
+  
   async getCurrentUser(): Promise<ApiResponse<{ user: User }>> {
     try {
       return await apiService.get<{ user: User }>('/auth/me');

@@ -11,7 +11,9 @@ import {
   StyleSheet,
   Text,
   View,
+  Image,
 } from 'react-native';
+import { OptimizedImage } from '@/components/optimized-image';
 
 const { width } = Dimensions.get('window');
 
@@ -19,23 +21,23 @@ const slides = [
   {
     id: '1',
     title: 'Almacena tus Entradas',
-    description: 'Guarda todas tus entradas en un solo lugar',
-    emoji: '🎫',
-    gradient: [EventuColors.violet + 'AA', EventuColors.magenta + 'AA'], 
+    description: 'Guarda todas tus entradas de forma segura y accede a ellas desde cualquier lugar',
+    image: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=800&h=800&fit=crop&q=80',
+    gradient: [EventuColors.magenta, EventuColors.hotPink],
   },
   {
     id: '2',
     title: 'Visualiza al Instante',
-    description: 'Accede a tus entradas en cualquier momento',
-    emoji: '📱',
-    gradient: [EventuColors.hotPink + 'AA', EventuColors.fuchsia + 'AA'], 
+    description: 'Accede a tus boletos digitales con código QR cuando lo necesites',
+    image: 'https://images.unsplash.com/photo-1511578314322-379afb476865?w=800&h=800&fit=crop&q=80',
+    gradient: [EventuColors.violet, EventuColors.magenta],
   },
   {
     id: '3',
     title: 'Confirma tus Datos',
-    description: 'Si ya compraste, solo confirma tus datos para ver tus entradas',
-    emoji: '✅',
-    gradient: [EventuColors.magenta + 'AA', EventuColors.violet + 'AA'], 
+    description: 'Si ya compraste tus entradas, confirma tus datos para verlas al instante',
+    image: 'https://images.unsplash.com/photo-1504608524841-42fe6f032b4b?w=800&h=800&fit=crop&q=80',
+    gradient: [EventuColors.hotPink, EventuColors.violet],
   },
 ];
 
@@ -59,20 +61,30 @@ export default function OnboardingScreen() {
   };
 
   const renderItem = ({ item }: any) => (
-    <LinearGradient
-      colors={item.gradient}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.slide}
-    >
+    <View style={styles.slide}>
+      <View style={styles.imageContainer}>
+        <OptimizedImage
+          source={{ uri: item.image }}
+          style={styles.slideImage}
+          contentFit="cover"
+          priority="high"
+          cachePolicy="memory-disk"
+          transition={200}
+        />
+        <LinearGradient
+          colors={[...item.gradient, 'rgba(0,0,0,0.6)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={styles.imageOverlay}
+        />
+      </View>
       <View style={styles.slideContent}>
-        <Text style={styles.emoji}>{item.emoji}</Text>
         <ThemedText type="title" style={styles.title}>
           {item.title}
         </ThemedText>
         <ThemedText style={styles.description}>{item.description}</ThemedText>
       </View>
-    </LinearGradient>
+    </View>
   );
 
   return (
@@ -151,78 +163,97 @@ const styles = StyleSheet.create({
     top: 50,
     right: 20,
     zIndex: 10,
-    padding: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    ...Shadows.sm,
   },
   skipText: {
-    color: EventuColors.white,
-    fontSize: 16,
+    color: EventuColors.magenta,
+    fontSize: 15,
     fontWeight: '600',
   },
   slide: {
     width,
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: EventuColors.white,
+  },
+  imageContainer: {
+    width: '100%',
+    height: '60%',
+    position: 'relative',
+  },
+  slideImage: {
+    width: '100%',
+    height: '100%',
+  },
+  imageOverlay: {
+    ...StyleSheet.absoluteFillObject,
   },
   slideContent: {
-    paddingHorizontal: 40,
+    flex: 1,
+    paddingHorizontal: 32,
+    paddingTop: 40,
+    paddingBottom: 20,
+    justifyContent: 'flex-start',
     alignItems: 'center',
-  },
-  emoji: {
-    fontSize: 120,
-    marginBottom: 40,
+    backgroundColor: EventuColors.white,
   },
   title: {
     fontSize: 32,
     fontWeight: '800',
-    color: EventuColors.white,
+    color: EventuColors.black,
     marginBottom: 16,
     textAlign: 'center',
     lineHeight: 40,
+    letterSpacing: -0.5,
   },
   description: {
-    fontSize: 18,
-    color: EventuColors.white,
+    fontSize: 17,
+    color: EventuColors.mediumGray,
     textAlign: 'center',
-    opacity: 0.95,
     lineHeight: 26,
+    paddingHorizontal: 20,
   },
   footer: {
     position: 'absolute',
-    bottom: 50,
-    width: '100%',
+    bottom: 0,
+    left: 0,
+    right: 0,
     paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 50,
+    backgroundColor: EventuColors.white,
   },
   pagination: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 24,
     gap: 8,
   },
   dot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: EventuColors.white,
-    opacity: 0.4,
+    backgroundColor: EventuColors.lightGray,
   },
   activeDot: {
     width: 24,
     height: 8,
     borderRadius: 4,
-    backgroundColor: EventuColors.white,
-    opacity: 1,
+    backgroundColor: EventuColors.magenta,
   },
   button: {
     borderRadius: Radius.xl,
     overflow: 'hidden',
-    ...Shadows.lg,
-    shadowColor: EventuColors.hotPink + '66', 
+    ...Shadows.md,
+    shadowColor: EventuColors.magenta,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
   buttonGradient: {
     paddingVertical: 18,
@@ -232,6 +263,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: EventuColors.white,
     fontSize: 17,
-    fontWeight: '600',
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
 });

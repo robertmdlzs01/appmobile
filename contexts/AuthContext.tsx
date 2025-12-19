@@ -8,8 +8,8 @@ interface User {
   email: string;
   name: string;
   profileImage?: string;
-  role?: 'user' | 'staff' | 'admin'; // Roles de usuario
-  isStaff?: boolean; // Compatibilidad con versión anterior
+  role?: 'user' | 'staff' | 'admin'; 
+  isStaff?: boolean; 
 }
 
 interface AuthContextType {
@@ -47,18 +47,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(parsedUser);
         apiService.setToken(token);
         
-        // Intentar verificar el token con el backend
+        
         try {
           const response = await authApi.getCurrentUser();
           if (response.success && response.data) {
             setUser(response.data.user);
             await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(response.data.user));
           } else {
-            // Token inválido, limpiar
+            
             await logout();
           }
         } catch (error) {
-          // Error de red o token inválido, mantener usuario local
+          
           console.warn('No se pudo verificar token, usando datos locales');
         }
       }
@@ -76,16 +76,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (response.success && response.data) {
         const { user, token } = response.data;
         
-        // Guardar usuario y token
+        
         await Promise.all([
           AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user)),
           AsyncStorage.setItem(TOKEN_STORAGE_KEY, token),
         ]);
         
-        // Configurar token en el servicio API
+        
         apiService.setToken(token);
         
-        // Determinar isStaff basado en el rol
+        
         const userWithStaff = {
           ...user,
           isStaff: user.role === 'staff' || user.role === 'admin',
@@ -98,7 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error: any) {
       console.error('Error en login:', error);
       
-      // Fallback a modo mock para desarrollo si el backend no está disponible
+      
       if (error.message?.includes('Network Error') || error.message?.includes('conexión')) {
         console.warn('Backend no disponible, usando modo mock');
         
@@ -154,7 +154,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error('No user logged in');
       }
       
-      // Intentar actualizar en el backend
+      
       try {
         const response = await apiService.put<{ user: User }>('/users/profile', userData);
         if (response.success && response.data) {
@@ -170,7 +170,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.warn('Error al actualizar en backend, usando actualización local:', error);
       }
       
-      // Fallback a actualización local
+      
       const updatedUser: User = {
         ...user,
         ...userData,
@@ -186,11 +186,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const autoLogin = async (userData: User) => {
     try {
+      
+      if (!userData.id || !userData.email || !userData.name) {
+        throw new Error('Datos de usuario incompletos');
+      }
+      
       await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userData));
       setUser(userData);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error during auto login:', error);
-      throw error;
+      throw new Error(error?.message || 'Error al guardar la sesión');
     }
   };
 

@@ -44,14 +44,28 @@ export default function HomeScreen() {
   const [error, setError] = useState<string | null>(null);
   const [hasNotifications] = useState(false);
 
-  // Obtener eventos de los tickets comprados
+  // Función para obtener el nombre del usuario
+  const getUserDisplayName = () => {
+    if (!user?.name) return null;
+    
+    const name = user.name.trim();
+    if (!name) return null;
+    
+    // Obtener solo el primer nombre
+    const firstName = name.split(' ')[0];
+    
+    // Capitalizar primera letra
+    return firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+  };
+
+  
   const purchasedEvents = useMemo(() => {
     if (!isAuthenticated) return [];
 
-    // Obtener eventIds únicos de los tickets comprados
+    
     const eventIds = [...new Set(mockTickets.map(ticket => ticket.eventId))];
     
-    // Filtrar eventos que coincidan con los eventIds de los tickets
+    
     const events = mockEvents
       .filter(event => eventIds.includes(event.id))
       .map(event => ({
@@ -98,6 +112,8 @@ export default function HomeScreen() {
     const eventDate = new Date(event.date);
     const day = eventDate.getDate();
     const month = eventDate.toLocaleDateString('es-CO', { month: 'short' });
+    const defaultImageUri = 'https://via.placeholder.com/400x300?text=Evento';
+    const imageUri = event.imageUrl || defaultImageUri;
     
     return (
       <AnimatedCard key={event.id} index={index} delay={index * 50}>
@@ -107,52 +123,53 @@ export default function HomeScreen() {
           hapticFeedback={true}
         >
           <View style={styles.eventImageContainer}>
-            <OptimizedImage
-              source={event.imageUrl || 'https://example.com/image.jpg'}
+            <Image
+              source={{ uri: imageUri }}
               style={styles.eventImage}
-              contentFit="cover"
-              priority="normal"
-              cachePolicy="memory-disk"
-              transition={200}
+              resizeMode="cover"
             />
-            <View style={styles.imageOverlay} />
+            <LinearGradient
+              colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.7)']}
+              style={styles.imageOverlay}
+            />
+            
             <View style={styles.dateBadge}>
               <Text style={styles.dateBadgeDay}>{day}</Text>
               <Text style={styles.dateBadgeMonth}>{month}</Text>
             </View>
-            <View style={styles.categoryBadge}>
-              <Text style={styles.categoryBadgeText}>{event.category}</Text>
+
+            <View style={styles.eventImageContent}>
+              <Text style={styles.eventTitleImage} numberOfLines={2}>
+                {event.title}
+              </Text>
+              <View style={styles.eventMetaRow}>
+                <View style={styles.eventMetaItem}>
+                  <MaterialIcons name="event" size={14} color="rgba(255,255,255,0.9)" />
+                  <Text style={styles.eventMetaTextImage}>{event.date}</Text>
+                </View>
+                <View style={styles.eventMetaItem}>
+                  <MaterialIcons name="place" size={14} color="rgba(255,255,255,0.9)" />
+                  <Text style={styles.eventMetaTextImage} numberOfLines={1}>{event.location}</Text>
+                </View>
+              </View>
             </View>
           </View>
           
-          <View style={styles.eventContent}>
-            <Text style={styles.eventTitle} numberOfLines={2}>
-              {event.title}
-            </Text>
-            
-            <View style={styles.eventMeta}>
-              <View style={styles.eventMetaItem}>
-                <MaterialIcons name="place" size={16} color={EventuColors.magenta} />
-                <Text style={styles.eventMetaText} numberOfLines={1}>
-                  {event.venue}
-                </Text>
-              </View>
-              <View style={styles.eventMetaItem}>
-                <MaterialIcons name="schedule" size={16} color={EventuColors.violet} />
-                <Text style={styles.eventMetaText}>{event.time}</Text>
-              </View>
-            </View>
-            
-            <View style={styles.eventFooter}>
-              <View style={styles.priceContainer}>
-                <Text style={styles.priceLabel}>Desde</Text>
-                <Text style={styles.eventPrice}>${event.price.toLocaleString('es-CO')}</Text>
-              </View>
-              <View style={styles.viewButton}>
-                <Text style={styles.viewButtonText}>Ver detalles</Text>
-                <MaterialIcons name="arrow-forward" size={18} color={EventuColors.magenta} />
-              </View>
-            </View>
+          {/* Quick Actions */}
+          <View style={styles.eventActions}>
+            <PressableCard
+              style={styles.primaryEventButton}
+              onPress={() => router.push(`/event/${event.id}`)}
+            >
+              <MaterialIcons name="arrow-forward" size={18} color={EventuColors.white} />
+              <Text style={styles.primaryEventButtonText}>Ver Detalles</Text>
+            </PressableCard>
+            <PressableCard
+              style={styles.secondaryEventButton}
+              onPress={() => router.push(`/(tabs)/tickets`)}
+            >
+              <Text style={styles.secondaryEventButtonText}>Mis Tickets</Text>
+            </PressableCard>
           </View>
         </PressableCard>
       </AnimatedCard>
@@ -186,7 +203,6 @@ export default function HomeScreen() {
             </TouchableOpacity>
             
             <View style={styles.headerCenter}>
-              <Text style={styles.headerTitle}>Mis Eventos</Text>
               {currentLocation && !locationLoading && (
                 <View style={styles.headerLocationContainer}>
                   <MaterialIcons name="location-on" size={16} color={EventuColors.violet} />
@@ -224,11 +240,36 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Mensaje de bienvenida */}
+          {/* Separador entre header y body */}
+          <View style={styles.headerSeparator}>
+            <LinearGradient
+              colors={[
+                'transparent',
+                'rgba(228, 0, 111, 0.12)',
+                'rgba(164, 46, 255, 0.12)',
+                'rgba(228, 0, 111, 0.12)',
+                'transparent'
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.separatorLine}
+            />
+          </View>
+
+          {}
           {isAuthenticated && (
             <View style={styles.welcomeSection}>
               <Text style={[styles.welcomeText, { color: colors.text }]}>
-                ¡Hola, {user?.name || 'Usuario'}! 👋
+                {getUserDisplayName() ? (
+                  <>
+                    ¡Nos encanta que estes aquí, <Text style={styles.welcomeName}>{getUserDisplayName()}</Text>!
+                  </>
+                ) : (
+                  '¡Nos encanta que estes aquí!'
+                )}
+              </Text>
+              <Text style={[styles.welcomeSubtitle, { color: colors.secondaryText }]}>
+                Lo mejor esta por comenzar, experiencias que no se olvidan
               </Text>
             </View>
           )}
@@ -275,10 +316,27 @@ export default function HomeScreen() {
               <FadeInView delay={100}>
                 <View style={styles.emptyContainer}>
                   <MaterialIcons name="event-busy" size={64} color={colors.secondaryText} />
-                  <Text style={[styles.emptyText, { color: colors.text }]}>No tienes eventos aún</Text>
-                  <Text style={[styles.emptySubtext, { color: colors.secondaryText }]}>
-                    Compra tus entradas en Eventu.co y aparecerán aquí
+                  <Text style={[styles.emptyText, { color: colors.text }]}>
+                    Actualmente no tienes boletos disponibles
                   </Text>
+                  <Text style={[styles.emptySubtext, { color: colors.secondaryText }]}>
+                    Te invitamos a adquirirlas de manera rápida en nuestro portal oficial Eventu.co
+                  </Text>
+                  <PressableCard
+                    style={[styles.emptyActionButton, { backgroundColor: EventuColors.magenta }]}
+                    onPress={handleOpenEventuWebsite}
+                    hapticFeedback={true}
+                  >
+                    <LinearGradient
+                      colors={[EventuColors.magenta, EventuColors.hotPink]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.emptyButtonGradient}
+                    >
+                      <MaterialIcons name="shopping-cart" size={20} color={EventuColors.white} />
+                      <Text style={styles.emptyButtonText}>Ir a Eventu.co</Text>
+                    </LinearGradient>
+                  </PressableCard>
                 </View>
               </FadeInView>
             ) : (
@@ -286,10 +344,7 @@ export default function HomeScreen() {
                 <View style={styles.section}>
                   <View style={styles.sectionHeader}>
                     <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                      Eventos con Boletos Comprados
-                    </Text>
-                    <Text style={[styles.eventCount, { color: colors.secondaryText }]}>
-                      {purchasedEvents.length} {purchasedEvents.length === 1 ? 'evento' : 'eventos'}
+                      Tus Eventos
                     </Text>
                   </View>
                   <View style={styles.eventsGrid}>
@@ -338,7 +393,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingTop: 60,
-    paddingBottom: 16,
+    paddingBottom: 20,
+  },
+  headerSeparator: {
+    marginHorizontal: 20,
+    marginBottom: 16,
+    marginTop: 4,
+    alignItems: 'center',
+  },
+  separatorLine: {
+    width: '100%',
+    height: 1.5,
+    borderRadius: 0.75,
   },
   headerCenter: {
     flex: 1,
@@ -368,12 +434,24 @@ const styles = StyleSheet.create({
   },
   welcomeSection: {
     paddingHorizontal: 20,
-    paddingBottom: 16,
+    paddingBottom: 20,
+    gap: 6,
   },
   welcomeText: {
     fontSize: 24,
     fontWeight: '800' as const,
     color: EventuColors.black,
+    lineHeight: 32,
+  },
+  welcomeSubtitle: {
+    fontSize: 15,
+    fontWeight: '500' as const,
+    lineHeight: 22,
+    opacity: 0.8,
+  },
+  welcomeName: {
+    color: EventuColors.magenta,
+    fontWeight: '800' as const,
   },
   notificationButton: {
     padding: 8,
@@ -425,7 +503,7 @@ const styles = StyleSheet.create({
     ...Shadows.sm,
   },
   scrollContent: {
-    paddingBottom: Platform.OS === 'ios' ? 220 : 200, // Espacio suficiente para el botón flotante y la barra de navegación
+    paddingBottom: Platform.OS === 'ios' ? 220 : 200, 
   },
   searchSection: {
     paddingHorizontal: 20,
@@ -587,6 +665,7 @@ const styles = StyleSheet.create({
   },
   eventsGrid: {
     paddingHorizontal: 20,
+    paddingTop: 8,
     gap: 20,
   },
   eventCard: {
@@ -594,27 +673,66 @@ const styles = StyleSheet.create({
     backgroundColor: EventuColors.white,
     borderRadius: Radius['2xl'],
     overflow: 'hidden',
-    ...Shadows.lg,
-    borderWidth: 1,
-    borderColor: EventuColors.lightGray,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
+    ...Shadows.md,
+    shadowColor: EventuColors.magenta,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 8,
+    marginBottom: 4,
   },
   eventImageContainer: {
     width: '100%',
-    height: 200,
+    height: 220,
     position: 'relative',
+    overflow: 'hidden',
   },
   eventImage: {
     width: '100%',
     height: '100%',
-    resizeMode: 'cover',
   },
   imageOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  eventImageContent: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    height: 60,
-    backgroundColor: 'transparent',
+    padding: 20,
+  },
+  eventTitleImage: {
+    fontSize: 22,
+    fontWeight: '800' as const,
+    color: EventuColors.white,
+    marginBottom: 12,
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  eventMetaRow: {
+    flexDirection: 'row',
+    gap: 16,
+    alignItems: 'center',
+  },
+  eventMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  eventMetaTextImage: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.95)',
+    fontWeight: '500',
+    textShadowColor: 'rgba(0,0,0,0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   dateBadge: {
     position: 'absolute',
@@ -641,83 +759,37 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginTop: 2,
   },
-  categoryBadge: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-    backgroundColor: EventuColors.magenta + '20',
-    borderRadius: Radius.full,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: EventuColors.magenta + '40',
-  },
-  categoryBadgeText: {
-    fontSize: 12,
-    fontWeight: '700' as const,
-    color: EventuColors.magenta,
-    textTransform: 'capitalize',
-  },
-  eventContent: {
+  eventActions: {
+    flexDirection: 'row',
     padding: 16,
     gap: 12,
+    backgroundColor: 'rgba(248, 249, 250, 0.8)',
   },
-  eventTitle: {
-    fontSize: 20,
-    fontWeight: '800' as const,
-    color: EventuColors.black,
-    lineHeight: 26,
-  },
-  eventMeta: {
-    gap: 8,
-  },
-  eventMetaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  eventMetaText: {
-    fontSize: 14,
-    fontWeight: '500' as const,
-    color: EventuColors.darkGray,
+  primaryEventButton: {
     flex: 1,
-  },
-  eventFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 4,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: EventuColors.lightGray,
-  },
-  priceContainer: {
-    gap: 2,
-  },
-  priceLabel: {
-    fontSize: 11,
-    fontWeight: '500' as const,
-    color: EventuColors.mediumGray,
-    textTransform: 'uppercase',
-  },
-  eventPrice: {
-    fontSize: 18,
-    fontWeight: '800' as const,
-    color: EventuColors.magenta,
-  },
-  viewButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
     borderRadius: Radius.lg,
-    backgroundColor: EventuColors.magenta + '10',
+    backgroundColor: EventuColors.magenta,
   },
-  viewButtonText: {
-    fontSize: 14,
+  primaryEventButtonText: {
+    color: EventuColors.white,
     fontWeight: '700' as const,
+    fontSize: 14,
+  },
+  secondaryEventButton: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: Radius.lg,
+    backgroundColor: 'transparent',
+  },
+  secondaryEventButtonText: {
     color: EventuColors.magenta,
+    fontWeight: '600' as const,
+    fontSize: 14,
   },
   modalOverlay: {
     flex: 1,
@@ -834,6 +906,28 @@ const styles = StyleSheet.create({
   emptySubtext: {
     fontSize: 14,
     textAlign: 'center',
+    paddingHorizontal: 20,
+    lineHeight: 22,
+  },
+  emptyActionButton: {
+    borderRadius: Radius.xl,
+    overflow: 'hidden',
+    marginTop: 8,
+    ...Shadows.md,
+    shadowColor: EventuColors.magenta + '66',
+  },
+  emptyButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+  },
+  emptyButtonText: {
+    color: EventuColors.white,
+    fontSize: 16,
+    fontWeight: '600' as const,
   },
   skeletonContainer: {
     paddingHorizontal: 20,
@@ -851,7 +945,7 @@ const styles = StyleSheet.create({
   },
   floatingButtonContainer: {
     position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 110 : 100, // Espacio sobre la barra de navegación (70px altura + 30px bottom en iOS = 100px, más 10px de margen)
+    bottom: Platform.OS === 'ios' ? 110 : 100, 
     left: 0,
     right: 0,
     alignItems: 'center',

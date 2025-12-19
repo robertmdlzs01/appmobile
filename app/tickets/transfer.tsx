@@ -43,7 +43,7 @@ export default function TransferTicketScreen() {
     }
 
     setLoading(true);
-    // Simular proceso de transferencia
+    
     await new Promise((resolve) => setTimeout(resolve, 1500));
     setLoading(false);
     setStep('pending');

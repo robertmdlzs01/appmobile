@@ -4,9 +4,11 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import Colors, { EventuColors } from '@/constants/theme';
 import { Radius, Shadows } from '@/constants/theme-extended';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useImagePicker } from '@/hooks/useImagePicker';
+import { useAuth } from '@/contexts/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Alert,
   Image,
@@ -18,33 +20,95 @@ import {
   StyleSheet,
   TextInput,
   View,
+  ActivityIndicator,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function CompleteProfileScreen() {
+  const { user, updateUser } = useAuth();
+  const { showImagePickerOptions, loading: imageLoading } = useImagePicker();
   const [fullName, setFullName] = useState('');
-  const [username, setUsername] = useState('');
   const [phone, setPhone] = useState('');
   const [bio, setBio] = useState('');
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
 
   const bg = colorScheme === 'dark' ? '#1f1f1f' : '#f5f5f5';
   const border = colorScheme === 'dark' ? '#2a2a2a' : '#e0e0e0';
 
-  const handleSelectImage = () => {
-    Alert.alert('Seleccionar Imagen', 'El selector de imágenes se abriría aquí');
-    
+  useEffect(() => {
+    loadUserData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const loadUserData = async () => {
+    try {
+      if (user) {
+        setFullName(user.name || '');
+        setProfileImage(user.profileImage || null);
+      } else {
+        const userData = await AsyncStorage.getItem('@eventu_user');
+        if (userData) {
+          const parsedUser = JSON.parse(userData);
+          setFullName(parsedUser.name || '');
+          setProfileImage(parsedUser.profileImage || null);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading user data:', error);
+    }
   };
 
-  const handleComplete = () => {
-    if (!fullName || !username) {
-      Alert.alert('Error', 'Por favor completa los campos requeridos');
+  const handleSelectImage = async () => {
+    const imageUri = await showImagePickerOptions({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    
+    if (imageUri) {
+      setProfileImage(imageUri);
+    }
+  };
+
+  const handleComplete = async () => {
+    if (!fullName.trim()) {
+      Alert.alert('Error', 'Por favor ingresa tu nombre completo');
       return;
     }
 
-    console.log('Profile completed:', { fullName, username, phone, bio });
-    router.replace('/auth/location-access');
+    setLoading(true);
+    try {
+      const updateData: any = {
+        name: fullName.trim(),
+      };
+
+      if (phone.trim()) {
+        updateData.phone = phone.trim();
+      }
+
+      if (bio.trim()) {
+        updateData.bio = bio.trim();
+      }
+
+      if (profileImage) {
+        updateData.profileImage = profileImage;
+      }
+
+      if (user) {
+        await updateUser(updateData);
+      }
+
+      console.log('Profile completed:', updateData);
+      router.replace('/auth/location-access');
+    } catch (error) {
+      console.error('Error completing profile:', error);
+      Alert.alert('Error', 'No se pudo completar el perfil. Intenta nuevamente.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -83,12 +147,24 @@ export default function CompleteProfileScreen() {
             </View>
 
             {}
-            <Pressable style={styles.imageContainer} onPress={handleSelectImage}>
-              {profileImage ? (
+            <Pressable 
+              style={styles.imageContainer} 
+              onPress={handleSelectImage}
+              disabled={imageLoading}
+            >
+              {imageLoading ? (
+                <View style={styles.imagePlaceholder}>
+                  <ActivityIndicator size="large" color={EventuColors.hotPink} />
+                </View>
+              ) : profileImage ? (
                 <View style={styles.imageWrapper}>
                   <Image source={{ uri: profileImage }} style={styles.profileImage} />
                   <View style={styles.editImageBadge}>
-                    <IconSymbol name="camera.fill" size={16} color={EventuColors.white} />
+                    <IconSymbol 
+                      name={imageLoading ? 'hourglass' : 'camera.fill'} 
+                      size={16} 
+                      color={EventuColors.white} 
+                    />
                   </View>
                 </View>
               ) : (
@@ -97,7 +173,11 @@ export default function CompleteProfileScreen() {
                   style={styles.imagePlaceholder}
                 >
                   <View style={styles.imagePlaceholderInner}>
-                    <IconSymbol name="camera.fill" size={32} color={EventuColors.hotPink} />
+                    <IconSymbol 
+                      name={imageLoading ? 'hourglass' : 'camera.fill'} 
+                      size={32} 
+                      color={EventuColors.hotPink} 
+                    />
                     <ThemedText style={styles.imagePlaceholderLabel}>
                       Agregar Foto
                     </ThemedText>
@@ -129,31 +209,6 @@ export default function CompleteProfileScreen() {
                     placeholder="Ingresa tu nombre completo"
                     placeholderTextColor={colorScheme === 'dark' ? '#666' : '#999'}
                     autoCapitalize="words"
-                  />
-                </ThemedView>
-              </ThemedView>
-
-              <ThemedView style={styles.inputContainer}>
-                <ThemedText style={styles.label}>
-                  Nombre de Usuario <ThemedText style={styles.required}>*</ThemedText>
-                </ThemedText>
-                <ThemedView
-                  style={[
-                    styles.inputWrapper,
-                    {
-                      backgroundColor: bg,
-                      borderColor: border,
-                    },
-                  ]}
-                >
-                  <ThemedText style={styles.usernamePrefix}>@</ThemedText>
-                  <TextInput
-                    style={[styles.input, { color: colors.text }]}
-                    value={username}
-                    onChangeText={setUsername}
-                    placeholder="usuario"
-                    placeholderTextColor={colorScheme === 'dark' ? '#666' : '#999'}
-                    autoCapitalize="none"
                   />
                 </ThemedView>
               </ThemedView>
@@ -212,11 +267,11 @@ export default function CompleteProfileScreen() {
             <Pressable
               style={({ pressed }) => [
                 styles.button,
-                (!fullName || !username) && styles.buttonDisabled,
-                { opacity: pressed || (!fullName || !username) ? 0.7 : 1 },
+                (!fullName.trim() || loading) && styles.buttonDisabled,
+                { opacity: pressed || (!fullName.trim() || loading) ? 0.7 : 1 },
               ]}
               onPress={handleComplete}
-              disabled={!fullName || !username}
+              disabled={!fullName.trim() || loading}
             >
               <LinearGradient
                 colors={[EventuColors.hotPink + 'CC', EventuColors.magenta + 'CC']} 
@@ -224,7 +279,11 @@ export default function CompleteProfileScreen() {
                 end={{ x: 1, y: 0 }}
                 style={styles.buttonGradient}
               >
-                <ThemedText style={styles.buttonText}>Completar Perfil</ThemedText>
+                {loading ? (
+                  <ActivityIndicator size="small" color={EventuColors.white} />
+                ) : (
+                  <ThemedText style={styles.buttonText}>Completar Perfil</ThemedText>
+                )}
               </LinearGradient>
             </Pressable>
           </ScrollView>
@@ -349,11 +408,6 @@ const styles = StyleSheet.create({
   textAreaWrapper: {
     alignItems: 'flex-start',
     paddingTop: 14,
-  },
-  usernamePrefix: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: EventuColors.hotPink,
   },
   input: {
     flex: 1,

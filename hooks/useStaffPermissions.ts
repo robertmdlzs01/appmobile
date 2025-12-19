@@ -1,16 +1,11 @@
-/**
- * Hook para verificar permisos de staff
- * Solo el personal autorizado puede acceder a funciones de staff
- */
+
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 
-/**
- * Verifica si el usuario actual tiene permisos de staff
- */
+
 export function useStaffPermissions() {
   const { user, isAuthenticated } = useAuth();
   
@@ -25,10 +20,7 @@ export function useStaffPermissions() {
   };
 }
 
-/**
- * Hook para proteger rutas de staff
- * Redirige si el usuario no tiene permisos
- */
+
 export function useRequireStaff() {
   const { isStaff, isAuthenticated } = useStaffPermissions();
   const router = useRouter();

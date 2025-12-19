@@ -4,10 +4,7 @@ import { TicketModel } from '../models/Ticket';
 
 const router = Router();
 
-/**
- * GET /api/tickets
- * Obtiene tickets del usuario autenticado
- */
+
 router.get('/', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
@@ -32,10 +29,7 @@ router.get('/', authenticateToken, async (req: AuthRequest, res: Response) => {
   }
 });
 
-/**
- * GET /api/tickets/:id
- * Obtiene un ticket específico
- */
+
 router.get('/:id', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const ticket = await TicketModel.getTicketById(req.params.id);
@@ -68,10 +62,7 @@ router.get('/:id', authenticateToken, async (req: AuthRequest, res: Response) =>
   }
 });
 
-/**
- * GET /api/tickets/:id/validation
- * Obtiene el estado de validación de un ticket
- */
+
 router.get('/:id/validation', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const ticket = await TicketModel.getTicketById(req.params.id);
@@ -106,10 +97,7 @@ router.get('/:id/validation', authenticateToken, async (req: AuthRequest, res: R
   }
 });
 
-/**
- * GET /api/tickets/validations/history
- * Obtiene el historial completo de validaciones (solo staff)
- */
+
 router.get('/validations/history', requireStaff, async (req: AuthRequest, res: Response) => {
   try {
     // TODO: Verificar que el usuario es staff
@@ -130,10 +118,7 @@ router.get('/validations/history', requireStaff, async (req: AuthRequest, res: R
   }
 });
 
-/**
- * POST /api/tickets/:id/validate
- * Valida/escanea un ticket (para staff)
- */
+
 router.post('/:id/validate', requireStaff, async (req: AuthRequest, res: Response) => {
   try {
     const { action, rejectionReason } = req.body;

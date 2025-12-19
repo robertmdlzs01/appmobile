@@ -1,15 +1,12 @@
-import { AnimatedCard } from '@/components/animated-card';
-import { FadeInView } from '@/components/fade-in-view';
-import { PressableCard } from '@/components/pressable-card';
-import Colors, { EventuColors } from '@/constants/theme';
+import { EventuColors } from '@/constants/theme';
 import { Radius, Shadows } from '@/constants/theme-extended';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { router } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useState, useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { mockTickets } from '@/services/mockTickets';
+import { useSafeAreaHeaderPadding } from '@/hooks/useSafeAreaInsets';
 
 interface Ticket {
   id: string;
@@ -45,16 +42,16 @@ function formatDateDisplay(dateString: string): string {
   }
 }
 
-function getStatusColor(status: string): string {
+function getStatusColor(status: string): { bg: string; text: string } {
   switch (status) {
     case 'used':
-      return EventuColors.mediumGray;
+      return { bg: '#E8F5E9', text: EventuColors.success };
     case 'transferred':
-      return EventuColors.violet;
+      return { bg: '#E3F2FD', text: '#2196F3' };
     case 'cancelled':
-      return '#FF3B30';
+      return { bg: '#FFEBEE', text: EventuColors.error };
     default:
-      return EventuColors.magenta;
+      return { bg: '#F3E5F5', text: EventuColors.violet };
   }
 }
 
@@ -71,14 +68,21 @@ function getStatusLabel(status: string): string {
   }
 }
 
+function formatCurrency(amount: number) {
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    minimumFractionDigits: 0,
+  }).format(amount);
+}
+
 export default function TicketHistoryScreen() {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
   const { isAuthenticated } = useAuth();
+  const { paddingTop: safeAreaPaddingTop } = useSafeAreaHeaderPadding();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'used' | 'transferred' | 'cancelled'>('all');
 
-  // Combinar tickets activos con algunos históricos (simulado)
+  
   const allTickets: Ticket[] = useMemo(() => {
     const activeTickets = mockTickets.map(t => ({
       id: t.id,
@@ -95,7 +99,7 @@ export default function TicketHistoryScreen() {
       status: t.status as 'active' | 'used' | 'cancelled',
     }));
 
-    // Agregar algunos tickets históricos simulados
+    
     const historicalTickets: Ticket[] = [
       {
         id: 'hist-1',
@@ -146,7 +150,7 @@ export default function TicketHistoryScreen() {
       filtered = filtered.filter(ticket => ticket.status === filterStatus);
     }
 
-    // Ordenar por fecha (más recientes primero)
+    
     filtered.sort((a, b) => {
       const dateA = new Date(a.date).getTime();
       const dateB = new Date(b.date).getTime();
@@ -166,34 +170,31 @@ export default function TicketHistoryScreen() {
 
   if (!isAuthenticated) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container}>
         <View style={styles.emptyState}>
-          <MaterialIcons name="lock" size={64} color="rgba(255,255,255,0.3)" />
-          <Text style={styles.emptyText}>Inicia sesión para ver tu historial</Text>
+          <MaterialIcons name="lock" size={64} color={EventuColors.mediumGray} />
+          <Text style={styles.emptyTitle}>Inicia sesión para ver tu historial</Text>
+          <Text style={styles.emptySubtitle}>
+            Los tickets que hayas comprado aparecerán aquí
+          </Text>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.backgroundGradient}>
-        <FadeInView delay={100}>
-          <View style={styles.header}>
-            <Pressable onPress={() => router.back()} style={styles.backButton}>
-              <MaterialIcons name="arrow-back" size={24} color={EventuColors.white} />
+    <SafeAreaView style={styles.container}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {}
+          <View style={[styles.header, { paddingTop: safeAreaPaddingTop + 16 }]}>
+            <Pressable style={styles.iconButton} onPress={() => router.back()}>
+            <MaterialIcons name="arrow-back" size={24} color={EventuColors.black} />
             </Pressable>
-            <Text style={styles.title}>Historial de Entradas</Text>
-            <View style={styles.backButton} />
+          <Text style={styles.headerTitle}>Historial de Entradas</Text>
+          <View style={styles.iconButton} />
           </View>
-        </FadeInView>
 
-        <ScrollView
-          style={styles.scrollView}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-        >
-          <FadeInView delay={200}>
+        {}
             <View style={styles.searchSection}>
               <View style={styles.searchContainer}>
                 <MaterialIcons name="search" size={20} color={EventuColors.mediumGray} />
@@ -212,55 +213,50 @@ export default function TicketHistoryScreen() {
               </View>
             </View>
 
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.filtersContainer}
-            >
+        {}
+        <View style={styles.filtersContainer}>
               {statusFilters.map((filter) => (
-                <PressableCard
+            <Pressable
                   key={filter.value}
                   style={[
-                    styles.filterChip,
-                    filterStatus === filter.value && styles.filterChipActive,
+                styles.filterButton,
+                filterStatus === filter.value && styles.filterButtonActive,
                   ]}
                   onPress={() => setFilterStatus(filter.value)}
                 >
                   <Text
                     style={[
-                      styles.filterChipText,
-                      filterStatus === filter.value && styles.filterChipTextActive,
+                  styles.filterText,
+                  filterStatus === filter.value && styles.filterTextActive,
                     ]}
                   >
                     {filter.label}
                   </Text>
-                </PressableCard>
+            </Pressable>
               ))}
-            </ScrollView>
-          </FadeInView>
+        </View>
 
+        {}
+        <View style={styles.ticketsSection}>
           {filteredTickets.length === 0 ? (
-            <FadeInView delay={300}>
               <View style={styles.emptyState}>
-                <MaterialIcons name="history" size={64} color="rgba(255,255,255,0.3)" />
-                <Text style={styles.emptyText}>No se encontraron entradas</Text>
-                <Text style={styles.emptySubtext}>
+              <MaterialIcons name="history" size={64} color={EventuColors.mediumGray} />
+              <Text style={styles.emptyTitle}>No se encontraron entradas</Text>
+              <Text style={styles.emptySubtitle}>
                   {searchQuery || filterStatus !== 'all'
                     ? 'Intenta ajustar tus filtros'
                     : 'Aún no tienes entradas en tu historial'}
                 </Text>
               </View>
-            </FadeInView>
           ) : (
-            <View style={styles.ticketsContainer}>
-              {filteredTickets.map((ticket, index) => {
-                const statusColor = getStatusColor(ticket.status);
+            filteredTickets.map((ticket) => {
+              const statusColors = getStatusColor(ticket.status);
                 const statusLabel = getStatusLabel(ticket.status);
 
                 return (
-                  <AnimatedCard key={ticket.id} index={index} delay={index * 50}>
-                    <PressableCard
-                      style={[styles.ticketCard, { backgroundColor: EventuColors.white }]}
+                <Pressable
+                  key={ticket.id}
+                  style={styles.ticketCard}
                       onPress={() => {
                         if (ticket.status === 'active') {
                           router.push(`/ticket/${ticket.id}`);
@@ -270,78 +266,106 @@ export default function TicketHistoryScreen() {
                     >
                       <View style={styles.ticketHeader}>
                         <View style={styles.ticketInfo}>
-                          <Text style={styles.eventName}>{ticket.eventName}</Text>
-                          <Text style={styles.eventDate}>
-                            {ticket.dateDisplay || formatDateDisplay(ticket.date)} • {ticket.time}
+                      <Text style={styles.ticketNumber}>
+                        {ticket.id.toUpperCase()}
                           </Text>
-                          <Text style={styles.eventLocation}>
-                            {ticket.venue || ticket.location} • {ticket.location}
+                      <Text style={styles.ticketDate}>
+                        {ticket.dateDisplay || formatDateDisplay(ticket.date)}
                           </Text>
                         </View>
                         <View
                           style={[
                             styles.statusBadge,
-                            { backgroundColor: statusColor + '20' },
+                        { backgroundColor: statusColors.bg },
                           ]}
                         >
-                          <Text style={[styles.statusText, { color: statusColor }]}>
+                      <Text style={[styles.statusText, { color: statusColors.text }]}>
                             {statusLabel}
                           </Text>
                         </View>
                       </View>
-                      <View style={styles.ticketFooter}>
+
+                  <View style={styles.ticketContent}>
+                    <Text style={styles.eventName}>{ticket.eventName}</Text>
                         <View style={styles.ticketDetails}>
-                          <MaterialIcons name="event-seat" size={14} color={EventuColors.mediumGray} />
-                          <Text style={styles.detailText}>{ticket.seat}</Text>
-                        </View>
-                        <Text style={styles.quantityText}>
-                          {ticket.quantity} {ticket.quantity === 1 ? 'boleto' : 'boletos'}
+                      <View style={styles.detailRow}>
+                        <MaterialIcons
+                          name="place"
+                          size={16}
+                          color={EventuColors.mediumGray}
+                        />
+                        <Text style={styles.detailText}>
+                          {ticket.venue || ticket.location}
                         </Text>
                       </View>
-                    </PressableCard>
-                  </AnimatedCard>
-                );
-              })}
-            </View>
+                      <View style={styles.detailRow}>
+                        <MaterialIcons
+                          name="schedule"
+                          size={16}
+                          color={EventuColors.mediumGray}
+                        />
+                        <Text style={styles.detailText}>{ticket.time}</Text>
+                      </View>
+                      <View style={styles.detailRow}>
+                        <MaterialIcons
+                          name="event-seat"
+                          size={16}
+                          color={EventuColors.mediumGray}
+                        />
+                        <Text style={styles.detailText}>{ticket.seat}</Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  <View style={styles.ticketFooter}>
+                    <View>
+                      <Text style={styles.quantityLabel}>Cantidad</Text>
+                      <Text style={styles.quantityValue}>
+                        {ticket.quantity} {ticket.quantity === 1 ? 'boleto' : 'boletos'}
+                      </Text>
+                    </View>
+                    <View style={styles.priceContainer}>
+                      <Text style={styles.priceLabel}>Total</Text>
+                      <Text style={styles.priceValue}>
+                        {formatCurrency(ticket.price * (ticket.quantity || 1))}
+                      </Text>
+                    </View>
+                  </View>
+                </Pressable>
+              );
+            })
           )}
+        </View>
         </ScrollView>
-      </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: EventuColors.violet,
-  },
-  backgroundGradient: {
-    flex: 1,
+    backgroundColor: '#F8F9FA',
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: EventuColors.white,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
+    paddingHorizontal: 20,
     paddingBottom: 20,
+  },
+  iconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: EventuColors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Shadows.sm,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: EventuColors.black,
   },
   searchSection: {
     paddingHorizontal: 20,
@@ -351,7 +375,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: EventuColors.white,
-    borderRadius: Radius.xl,
+    borderRadius: 12,
     paddingHorizontal: 16,
     height: 50,
     gap: 12,
@@ -363,38 +387,72 @@ const styles = StyleSheet.create({
     color: EventuColors.black,
   },
   filtersContainer: {
+    flexDirection: 'row',
     paddingHorizontal: 20,
-    gap: 10,
-    marginBottom: 20,
+    marginBottom: 24,
+    gap: 8,
   },
-  filterChip: {
-    paddingHorizontal: 16,
+  filterButton: {
+    flex: 1,
     paddingVertical: 10,
+    paddingHorizontal: 8,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: EventuColors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: EventuColors.lightGray,
+    ...Shadows.sm,
+    minHeight: 40,
   },
-  filterChipActive: {
-    backgroundColor: EventuColors.magenta,
-    borderColor: EventuColors.magenta,
+  filterButtonActive: {
+    backgroundColor: EventuColors.hotPink,
+    borderColor: EventuColors.hotPink,
   },
-  filterChipText: {
-    fontSize: 14,
-    fontWeight: '600',
+  filterText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: EventuColors.mediumGray,
+    textAlign: 'center',
+  },
+  filterTextActive: {
     color: EventuColors.white,
   },
-  filterChipTextActive: {
-    color: EventuColors.white,
-  },
-  ticketsContainer: {
+  ticketsSection: {
     paddingHorizontal: 20,
-    gap: 16,
+    paddingBottom: 100,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 80,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: EventuColors.black,
+    marginTop: 24,
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: EventuColors.mediumGray,
+    textAlign: 'center',
+    paddingHorizontal: 40,
   },
   ticketCard: {
-    borderRadius: Radius['2xl'],
-    padding: 20,
+    backgroundColor: EventuColors.white,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
     ...Shadows.md,
+    shadowColor: EventuColors.magenta,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 6,
   },
   ticketHeader: {
     flexDirection: 'row',
@@ -404,29 +462,46 @@ const styles = StyleSheet.create({
   },
   ticketInfo: {
     flex: 1,
-    gap: 6,
   },
-  eventName: {
-    fontSize: 18,
-    fontWeight: '800',
+  ticketNumber: {
+    fontSize: 16,
+    fontWeight: 'bold',
     color: EventuColors.black,
+    marginBottom: 4,
   },
-  eventDate: {
-    fontSize: 14,
-    color: EventuColors.mediumGray,
-  },
-  eventLocation: {
-    fontSize: 14,
+  ticketDate: {
+    fontSize: 12,
     color: EventuColors.mediumGray,
   },
   statusBadge: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: Radius.default,
+    borderRadius: 12,
   },
   statusText: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
+  },
+  ticketContent: {
+    marginBottom: 16,
+  },
+  eventName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: EventuColors.black,
+    marginBottom: 12,
+  },
+  ticketDetails: {
+    gap: 8,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  detailText: {
+    fontSize: 14,
+    color: EventuColors.mediumGray,
   },
   ticketFooter: {
     flexDirection: 'row',
@@ -436,37 +511,28 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: EventuColors.lightGray,
   },
-  ticketDetails: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  detailText: {
-    fontSize: 14,
+  quantityLabel: {
+    fontSize: 12,
     color: EventuColors.mediumGray,
+    marginBottom: 4,
   },
-  quantityText: {
-    fontSize: 14,
+  quantityValue: {
+    fontSize: 16,
     fontWeight: '600',
     color: EventuColors.black,
   },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 40,
-    gap: 12,
+  priceContainer: {
+    alignItems: 'flex-end',
   },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: EventuColors.white,
-    textAlign: 'center',
+  priceLabel: {
+    fontSize: 12,
+    color: EventuColors.mediumGray,
+    marginBottom: 4,
   },
-  emptySubtext: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.7)',
-    textAlign: 'center',
+  priceValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: EventuColors.hotPink,
   },
 });
 

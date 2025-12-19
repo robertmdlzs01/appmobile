@@ -1,10 +1,4 @@
-/**
- * NOTA: Las compras se gestionan en la web (eventu.co), no en esta app.
- * Este archivo se mantiene solo para compatibilidad si hay referencias en otros lugares.
- * 
- * Para realizar compras, redirige al usuario a la web:
- * https://eventu.co/booking?eventId=...&tickets=...&totalAmount=...
- */
+
 
 export interface Ticket {
   ticketId?: string;
@@ -39,30 +33,22 @@ export interface Purchase {
 
 // Exportar interfaces vacías para compatibilidad
 export const purchasesApi = {
-  /**
-   * @deprecated Las compras se gestionan en la web. Usa redirección a eventu.co/booking
-   */
+  
   async createPurchase(): Promise<any> {
     throw new Error('Las compras se gestionan en la web. Redirige a https://eventu.co/booking');
   },
 
-  /**
-   * @deprecated Las compras se gestionan en la web
-   */
+  
   async getPurchase(): Promise<any> {
     throw new Error('Las compras se gestionan en la web');
   },
 
-  /**
-   * @deprecated Las compras se gestionan en la web
-   */
+  
   async getPurchaseByOrderNumber(): Promise<any> {
     throw new Error('Las compras se gestionan en la web');
   },
 
-  /**
-   * @deprecated Las compras se gestionan en la web
-   */
+  
   async getUserPurchases(): Promise<any> {
     throw new Error('Las compras se gestionan en la web');
   },

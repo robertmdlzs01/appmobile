@@ -1,146 +1,111 @@
-/**
- * Hook para manejar el bloqueo de capturas de pantalla y grabación
- * en toda la aplicación
- * 
- * IMPORTANTE:
- * - En iOS: Funciona automáticamente
- * - En Android: Requiere que la app tenga FLAG_SECURE en la ventana
- * - En Web: No está soportado (se ignora silenciosamente)
- */
-
 import { useEffect, useRef } from 'react';
 import * as ScreenCapture from 'expo-screen-capture';
 import { Platform } from 'react-native';
 import { usePathname } from 'expo-router';
 
-/**
- * Rutas donde NO se debe bloquear la captura de pantalla
- * (por ejemplo, pantallas públicas, onboarding, etc.)
- */
-const ALLOWED_ROUTES = [
-  '/welcome',
-  '/login',
-  '/register',
-  '/auth/onboarding',
-  '/auth/verify-code',
-  '/auth/new-password',
-  '/auth/preferences-gender',
-  '/auth/preferences-age',
-  '/auth/preferences-interest',
-  '/auth/complete-profile',
-  '/auth/location-access',
-  '/auth/enter-location',
-];
+const ALLOWED_ROUTES: string[] = []; 
 
-/**
- * Rutas donde SÍ se debe bloquear la captura (pantallas sensibles)
- * Si está vacío, se bloquea en todas las rutas excepto las permitidas
- */
 const BLOCKED_ROUTES: string[] = [];
 
-/**
- * Hook para manejar el bloqueo de capturas de pantalla
- * @param enabled - Si true, bloquea capturas. Si false, permite capturas.
- * @param route - Ruta actual (opcional, se detecta automáticamente)
- */
 export function useScreenCapture(enabled: boolean = true, route?: string) {
   const pathname = usePathname();
   const currentRoute = route || pathname || '';
   const isBlockedRef = useRef(false);
 
   useEffect(() => {
-    // Verificar si esta ruta está en la lista de permitidas
-    const isAllowedRoute = ALLOWED_ROUTES.some((allowedRoute) =>
-      currentRoute.startsWith(allowedRoute)
-    );
+    
+    const shouldBlock = enabled;
 
-    // Verificar si esta ruta está específicamente bloqueada
-    const isBlockedRoute = BLOCKED_ROUTES.length > 0
-      ? BLOCKED_ROUTES.some((blockedRoute) => currentRoute.startsWith(blockedRoute))
-      : !isAllowedRoute; // Si no hay rutas bloqueadas específicas, bloquear todo excepto las permitidas
-
-    // Determinar si se debe bloquear
-    const shouldBlock = enabled && isBlockedRoute;
-
-    // Solo aplicar cambios si el estado cambió y no estamos en web
+    
     if (Platform.OS === 'web') {
-      return; // ScreenCapture no está disponible en web
+      return; 
     }
 
     if (shouldBlock && !isBlockedRef.current) {
       isBlockedRef.current = true;
-      ScreenCapture.preventScreenCaptureAsync().catch((error) => {
-        console.warn('Error preventing screen capture:', error);
+      ScreenCapture.preventScreenCaptureAsync().catch(() => {
+        
       });
     } else if (!shouldBlock && isBlockedRef.current) {
       isBlockedRef.current = false;
-      ScreenCapture.allowScreenCaptureAsync().catch((error) => {
-        console.warn('Error allowing screen capture:', error);
+      ScreenCapture.allowScreenCaptureAsync().catch(() => {
+        
       });
     }
 
-    // Cleanup al desmontar
+    
     return () => {
-      if (isBlockedRef.current) {
-        ScreenCapture.allowScreenCaptureAsync().catch(() => {
-          // Ignorar errores en cleanup
-        });
-        isBlockedRef.current = false;
-      }
+      
+      
     };
   }, [enabled, currentRoute]);
 }
 
-/**
- * Bloquea capturas de pantalla globalmente en toda la app
- * Se debe llamar en el layout principal
- */
 export function useGlobalScreenCaptureBlock(enabled: boolean = true) {
   const pathname = usePathname();
   const currentRoute = pathname || '';
   const isBlockedRef = useRef(false);
+  const intervalRef = useRef<number | null>(null);
+
+  
+  const applyBlock = () => {
+    if (Platform.OS === 'web') return;
+    
+    ScreenCapture.preventScreenCaptureAsync()
+      .then(() => {
+        isBlockedRef.current = true;
+      })
+      .catch(() => {
+        
+      });
+  };
 
   useEffect(() => {
-    // Verificar si esta ruta está en la lista de permitidas
-    const isAllowedRoute = ALLOWED_ROUTES.some((allowedRoute) =>
-      currentRoute.startsWith(allowedRoute)
-    );
+    
+    const shouldBlock = enabled;
 
-    // Determinar si se debe bloquear
-    const shouldBlock = enabled && !isAllowedRoute;
-
-    // Solo aplicar cambios si el estado cambió y no estamos en web
+    
     if (Platform.OS === 'web') {
-      return; // ScreenCapture no está disponible en web
+      return; 
     }
 
-    if (shouldBlock && !isBlockedRef.current) {
-      isBlockedRef.current = true;
-      ScreenCapture.preventScreenCaptureAsync().catch((error) => {
-        if (__DEV__) {
-          console.log('Screen capture blocked for route:', currentRoute);
-        }
-        console.warn('Error preventing screen capture:', error);
-      });
+    if (shouldBlock) {
+      
+      applyBlock();
+      
+      
+      intervalRef.current = setInterval(() => {
+        applyBlock();
+      }, 2000) as unknown as number;
+      
     } else if (!shouldBlock && isBlockedRef.current) {
+      
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      
       isBlockedRef.current = false;
-      ScreenCapture.allowScreenCaptureAsync().catch((error) => {
-        if (__DEV__) {
-          console.log('Screen capture allowed for route:', currentRoute);
-        }
-        console.warn('Error allowing screen capture:', error);
+      ScreenCapture.allowScreenCaptureAsync().catch(() => {
+        
       });
     }
 
-    // Cleanup al desmontar
+    
     return () => {
-      if (isBlockedRef.current) {
-        ScreenCapture.allowScreenCaptureAsync().catch(() => {
-          // Ignorar errores en cleanup
-        });
-        isBlockedRef.current = false;
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
+      
     };
   }, [enabled, currentRoute]);
+
+  
+  useEffect(() => {
+    if (Platform.OS !== 'web' && enabled) {
+      applyBlock();
+    }
+  }, [pathname, enabled]);
 }
 

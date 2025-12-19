@@ -12,8 +12,10 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useSafeAreaHeaderPadding } from '@/hooks/useSafeAreaInsets';
 
 export default function HelpCenterScreen() {
+  const { paddingTop: safeAreaPaddingTop } = useSafeAreaHeaderPadding();
   const [expandedFAQ, setExpandedFAQ] = useState<string | null>(null);
 
   const faqs = [
@@ -79,7 +81,7 @@ export default function HelpCenterScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: safeAreaPaddingTop + 16 }]}>
           <Pressable style={styles.iconButton} onPress={() => router.back()}>
             <MaterialIcons name="arrow-back" size={24} color={EventuColors.black} />
           </Pressable>
@@ -171,7 +173,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 10,
     paddingBottom: 20,
   },
   iconButton: {

@@ -4,10 +4,7 @@ import { optionalAuth } from '../middleware/auth';
 
 const router = Router();
 
-/**
- * GET /api/events
- * Obtiene lista de eventos con filtros opcionales
- */
+
 router.get('/', optionalAuth, async (req: Request, res: Response) => {
   try {
     const params: EventsQueryParams = {
@@ -46,10 +43,7 @@ router.get('/', optionalAuth, async (req: Request, res: Response) => {
   }
 });
 
-/**
- * GET /api/events/featured
- * Obtiene eventos destacados
- */
+
 router.get('/featured', optionalAuth, async (req: Request, res: Response) => {
   try {
     const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
@@ -67,10 +61,7 @@ router.get('/featured', optionalAuth, async (req: Request, res: Response) => {
   }
 });
 
-/**
- * GET /api/events/:id
- * Obtiene detalles de un evento específico
- */
+
 router.get('/:id', optionalAuth, async (req: Request, res: Response) => {
   try {
     const event = await EventModel.getEventById(req.params.id);

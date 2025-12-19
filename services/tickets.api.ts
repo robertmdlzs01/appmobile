@@ -27,9 +27,7 @@ export interface TicketWithValidation {
 }
 
 export const ticketsApi = {
-  /**
-   * Obtiene tickets del usuario autenticado
-   */
+  
   async getTickets(): Promise<ApiResponse<any[]>> {
     try {
       return await apiService.get<any[]>('/tickets');
@@ -41,9 +39,7 @@ export const ticketsApi = {
     }
   },
 
-  /**
-   * Obtiene un ticket por ID
-   */
+  
   async getTicketById(ticketId: string): Promise<ApiResponse<any>> {
     try {
       return await apiService.get<any>(`/tickets/${ticketId}`);
@@ -55,9 +51,7 @@ export const ticketsApi = {
     }
   },
 
-  /**
-   * Obtiene el estado de validación de un boleto
-   */
+  
   async getTicketValidation(ticketId: string): Promise<ApiResponse<{ validation: TicketValidation }>> {
     try {
       return await apiService.get<{ validation: TicketValidation }>(`/tickets/${ticketId}/validation`);
@@ -69,9 +63,7 @@ export const ticketsApi = {
     }
   },
 
-  /**
-   * Obtiene el estado de validación de múltiples boletos
-   */
+  
   async getTicketsValidation(ticketIds: string[]): Promise<ApiResponse<{ validations: TicketValidation[] }>> {
     try {
       const validations = await Promise.all(
@@ -94,10 +86,7 @@ export const ticketsApi = {
     }
   },
 
-  /**
-   * Valida/escanea un ticket (para staff)
-   * Nota: staffId se obtiene automáticamente del token de autenticación
-   */
+  
   async validateTicket(
     ticketId: string,
     action: 'scan' | 'validate' | 'reject',
@@ -116,9 +105,7 @@ export const ticketsApi = {
     }
   },
 
-  /**
-   * Obtiene el historial completo de validaciones (para staff)
-   */
+  
   async getValidationHistory(
     options?: { limit?: number; offset?: number }
   ): Promise<ApiResponse<{ history: TicketValidation[] }>> {

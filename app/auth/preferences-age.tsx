@@ -9,25 +9,47 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 
-const ageRanges = [
-  { id: '18-24', label: '18-24', emoji: '🎓' },
-  { id: '25-34', label: '25-34', emoji: '💼' },
-  { id: '35-44', label: '35-44', emoji: '👔' },
-  { id: '45-54', label: '45-54', emoji: '👨‍💼' },
-  { id: '55+', label: '55+', emoji: '👴' },
-];
+const MIN_AGE = 13;
+const MAX_AGE = 100;
 
 export default function PreferencesAgeScreen() {
-  const [selectedAge, setSelectedAge] = useState<string>('');
+  const [age, setAge] = useState<number>(25);
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
+  const scaleAnim = useSharedValue(1);
+
+  const handleDecrease = () => {
+    if (age > MIN_AGE) {
+      setAge(age - 1);
+      scaleAnim.value = withSpring(0.9, { damping: 15 }, () => {
+        scaleAnim.value = withSpring(1, { damping: 15 });
+      });
+    }
+  };
+
+  const handleIncrease = () => {
+    if (age < MAX_AGE) {
+      setAge(age + 1);
+      scaleAnim.value = withSpring(1.1, { damping: 15 }, () => {
+        scaleAnim.value = withSpring(1, { damping: 15 });
+      });
+    }
+  };
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scaleAnim.value }],
+  }));
 
   const handleNext = () => {
-    if (selectedAge) {
-      console.log('Selected age:', selectedAge);
-      router.push('/auth/preferences-interest');
-    }
+    console.log('Selected age:', age);
+    router.push('/auth/complete-profile');
   };
 
   return (
@@ -47,7 +69,7 @@ export default function PreferencesAgeScreen() {
             <Pressable onPress={() => router.back()} style={styles.backButton}>
               <IconSymbol name="chevron.left" size={24} color={colors.text} />
             </Pressable>
-            <Pressable onPress={() => router.push('/auth/preferences-interest')}>
+            <Pressable onPress={() => router.push('/auth/complete-profile')}>
               <ThemedText style={styles.skipText}>Omitir</ThemedText>
             </Pressable>
           </View>
@@ -58,64 +80,83 @@ export default function PreferencesAgeScreen() {
               colors={[EventuColors.hotPink + 'CC', EventuColors.magenta + 'CC']} 
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
-              style={[styles.progressFill, { width: '66%' }]}
+              style={[styles.progressFill, { width: '100%' }]}
             />
           </View>
 
           {}
           <View style={styles.titleSection}>
             <ThemedText type="title" style={styles.title}>
-              ¿Cuál es tu rango de edad?
+              ¿Cuántos años tienes?
             </ThemedText>
             <ThemedText style={styles.subtitle}>
-              Ayúdanos a recomendarte eventos apropiados para tu edad
+              Tu edad nos ayuda a ofrecerte el mejor contenido.
             </ThemedText>
           </View>
 
           {}
-          <View style={styles.optionsContainer}>
-            {ageRanges.map((age) => {
-              const isSelected = selectedAge === age.id;
-              return (
-                <PressableCard
-                  key={age.id}
-                  style={[
-                    styles.option,
-                    isSelected && styles.optionSelected,
-                    {
-                      borderColor: isSelected ? EventuColors.hotPink : EventuColors.lightGray,
-                      backgroundColor: isSelected
-                        ? EventuColors.hotPink + '10' 
-                        : EventuColors.white,
-                    },
-                  ]}
-                  onPress={() => setSelectedAge(age.id)}
-                  hapticFeedback={true}
-                >
-                  <Text style={styles.emoji}>{age.emoji}</Text>
-                  <ThemedText
-                    style={[
-                      styles.optionText,
-                      isSelected && { color: EventuColors.hotPink, fontWeight: '600' },
-                    ]}
-                  >
-                    {age.label}
-                  </ThemedText>
-                  {isSelected && (
-                    <View style={styles.checkmark}>
-                      <LinearGradient
-                        colors={[EventuColors.hotPink + 'CC', EventuColors.magenta + 'CC']} 
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={styles.checkmarkGradient}
-                      >
-                        <IconSymbol name="checkmark" size={16} color={EventuColors.white} />
-                      </LinearGradient>
-                    </View>
-                  )}
-                </PressableCard>
-              );
-            })}
+          <View style={styles.ageCounterContainer}>
+            <View style={styles.ageDisplay}>
+              <Animated.View style={[styles.ageNumberContainer, animatedStyle]}>
+                <ThemedText type="title" style={styles.ageNumber}>
+                  {age}
+                </ThemedText>
+                <ThemedText style={styles.ageLabel}>
+                  {age === 1 ? 'año' : 'años'}
+                </ThemedText>
+              </Animated.View>
+            </View>
+
+            <View style={styles.controlsContainer}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.controlButton,
+                  age === MIN_AGE && styles.controlButtonDisabled,
+                  { opacity: pressed ? 0.7 : 1 },
+                ]}
+                onPress={handleDecrease}
+                disabled={age === MIN_AGE}
+              >
+                <MaterialIcons 
+                  name="remove" 
+                  size={28} 
+                  color={age === MIN_AGE ? EventuColors.lightGray : EventuColors.magenta} 
+                />
+              </Pressable>
+
+              <View style={styles.ageSelector}>
+                <View style={styles.sliderContainer}>
+                  <View style={styles.sliderTrack}>
+                    <View 
+                      style={[
+                        styles.sliderFill, 
+                        { width: `${((age - MIN_AGE) / (MAX_AGE - MIN_AGE)) * 100}%` }
+                      ]} 
+                    />
+                  </View>
+                </View>
+                <View style={styles.ageRangeLabels}>
+                  <Text style={styles.rangeLabel}>{MIN_AGE}</Text>
+                  <Text style={styles.rangeLabel}>{MAX_AGE}</Text>
+                </View>
+              </View>
+
+              <Pressable
+                style={({ pressed }) => [
+                  styles.controlButton,
+                  age === MAX_AGE && styles.controlButtonDisabled,
+                  { opacity: pressed ? 0.7 : 1 },
+                ]}
+                onPress={handleIncrease}
+                disabled={age === MAX_AGE}
+              >
+                <MaterialIcons 
+                  name="add" 
+                  size={28} 
+                  color={age === MAX_AGE ? EventuColors.lightGray : EventuColors.magenta} 
+                />
+              </Pressable>
+            </View>
           </View>
         </ScrollView>
 
@@ -124,11 +165,9 @@ export default function PreferencesAgeScreen() {
           <Pressable
             style={({ pressed }) => [
               styles.button,
-              !selectedAge && styles.buttonDisabled,
-              { opacity: pressed || !selectedAge ? 0.7 : 1 },
+              { opacity: pressed ? 0.9 : 1 },
             ]}
             onPress={handleNext}
-            disabled={!selectedAge}
           >
             <LinearGradient
               colors={[EventuColors.hotPink + 'CC', EventuColors.magenta + 'CC']} 
@@ -199,41 +238,81 @@ const styles = StyleSheet.create({
     opacity: 0.7,
     lineHeight: 24,
   },
-  optionsContainer: {
-    gap: 12,
-  },
-  option: {
-    flexDirection: 'row',
+  ageCounterContainer: {
     alignItems: 'center',
-    padding: 20,
-    borderWidth: 1.5,
-    borderRadius: Radius.xl,
-    ...Shadows.sm,
+    gap: 40,
   },
-  optionSelected: {
-    ...Shadows.md,
-    shadowColor: EventuColors.hotPink + '66', 
-  },
-  emoji: {
-    fontSize: 32,
-    marginRight: 16,
-  },
-  optionText: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  checkmark: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    overflow: 'hidden',
-  },
-  checkmarkGradient: {
-    width: '100%',
-    height: '100%',
+  ageDisplay: {
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 20,
+  },
+  ageNumberContainer: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  ageNumber: {
+    fontSize: 72,
+    fontWeight: '800',
+    color: EventuColors.magenta,
+    lineHeight: 80,
+    letterSpacing: -2,
+  },
+  ageLabel: {
+    fontSize: 20,
+    color: EventuColors.mediumGray,
+    fontWeight: '500',
+  },
+  controlsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 24,
+    width: '100%',
+  },
+  controlButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: EventuColors.white,
+    borderWidth: 2,
+    borderColor: EventuColors.magenta,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadows.md,
+  },
+  controlButtonDisabled: {
+    borderColor: EventuColors.lightGray,
+    opacity: 0.5,
+  },
+  ageSelector: {
+    flex: 1,
+    gap: 8,
+  },
+  sliderContainer: {
+    height: 40,
+    justifyContent: 'center',
+  },
+  sliderTrack: {
+    height: 6,
+    backgroundColor: EventuColors.lightGray,
+    borderRadius: 3,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  sliderFill: {
+    height: '100%',
+    backgroundColor: EventuColors.magenta,
+    borderRadius: 3,
+  },
+  ageRangeLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+  },
+  rangeLabel: {
+    fontSize: 12,
+    color: EventuColors.mediumGray,
+    fontWeight: '500',
   },
   bottomContainer: {
     padding: 20,

@@ -10,7 +10,7 @@ import { OptimizedImage } from '@/components/optimized-image';
 export default function EventInfoScreen() {
   const { eventId } = useLocalSearchParams();
   
-  // Datos del evento (solo visual, sin opciones de compra)
+  
   const eventInfo = {
     name: 'SANTALAND 2025',
     date: '12 diciembre – 14 diciembre 2025',

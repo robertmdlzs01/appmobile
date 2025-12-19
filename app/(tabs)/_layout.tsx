@@ -1,7 +1,7 @@
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Tabs } from 'expo-router';
-import React from 'react';
+import { Tabs, usePathname, useSegments } from 'expo-router';
+import React, { useEffect } from 'react';
 import { Dimensions, Platform, StyleSheet, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -16,6 +16,9 @@ import Colors, { EventuColors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 const { width } = Dimensions.get('window');
+const TAB_BAR_WIDTH = width * 0.75;
+const TAB_BAR_HEIGHT = 56;
+const TAB_COUNT = 3;
 
 const AnimatedView = Animated.createAnimatedComponent(View);
 
@@ -23,73 +26,92 @@ function AnimatedTabIcon({
   iconName,
   focused,
   color,
-  activeColor,
 }: {
   iconName: string;
   focused: boolean;
   color: string;
-  activeColor: string;
 }) {
-  const scale = useSharedValue(focused ? 1.05 : 1);
-  const opacity = useSharedValue(focused ? 1 : 1);
-  const iconScale = useSharedValue(focused ? 1 : 1);
+  const scale = useSharedValue(focused ? 1.1 : 1);
+  const iconScale = useSharedValue(focused ? 1 : 0.9);
 
   React.useEffect(() => {
-    scale.value = withSpring(focused ? 1.05 : 1, {
-      damping: 18,
+    scale.value = withSpring(focused ? 1.1 : 1, {
+      damping: 15,
       stiffness: 200,
     });
-    opacity.value = withTiming(focused ? 1 : 1, { duration: 125 });
-    iconScale.value = withSpring(focused ? 1 : 1, {
+    iconScale.value = withSpring(focused ? 1 : 0.9, {
       damping: 15,
       stiffness: 180,
     });
-  }, [focused, scale, opacity, iconScale]);
+  }, [focused, scale, iconScale]);
 
   const containerAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
-    opacity: opacity.value,
   }));
 
   const iconAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: iconScale.value }],
   }));
 
-  if (focused) {
-    return (
-      <AnimatedView style={containerAnimatedStyle}>
-        <AnimatedView style={styles.activeTabIcon}>
-          <LinearGradient
-            colors={[EventuColors.hotPink, EventuColors.magenta]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.activeTabGradient}
-          >
-            <Animated.View style={iconAnimatedStyle}>
-              <IconSymbol size={26} name={iconName as any} color="#ffffff" />
-            </Animated.View>
-          </LinearGradient>
-        </AnimatedView>
-      </AnimatedView>
-    );
-  }
   return (
-    <Animated.View style={[containerAnimatedStyle, styles.navIcon]}>
-      <IconSymbol size={24} name={iconName as any} color={color} />
-    </Animated.View>
+    <AnimatedView style={[styles.tabIconContainer, containerAnimatedStyle]}>
+      <Animated.View style={iconAnimatedStyle}>
+        <IconSymbol 
+          size={focused ? 28 : 26} 
+          name={iconName as any} 
+          color={focused ? EventuColors.magenta : EventuColors.mediumGray} 
+        />
+      </Animated.View>
+    </AnimatedView>
+  );
+}
+
+function AnimatedIndicator({ activeIndex }: { activeIndex: number }) {
+  const indicatorPosition = useSharedValue(activeIndex);
+
+  useEffect(() => {
+    indicatorPosition.value = withTiming(activeIndex, {
+      duration: 300,
+    });
+  }, [activeIndex, indicatorPosition]);
+
+  const indicatorStyle = useAnimatedStyle(() => {
+    const tabWidth = (TAB_BAR_WIDTH - 32) / TAB_COUNT;
+    const indicatorWidth = tabWidth * 0.35;
+    const leftOffset = (tabWidth - indicatorWidth) / 2;
+    const paddingOffset = 16;
+    
+    return {
+      left: paddingOffset + indicatorPosition.value * tabWidth + leftOffset,
+      width: indicatorWidth,
+    };
+  });
+
+  return (
+    <AnimatedView style={[styles.indicator, indicatorStyle]}>
+      <View style={styles.indicatorBar} />
+    </AnimatedView>
   );
 }
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const pathname = usePathname();
+  const segments = useSegments();
+
+  const getActiveIndex = () => {
+    if (pathname?.includes('tickets')) return 0;
+    if (pathname?.includes('profile')) return 2;
+    return 1;
+  };
+
+  const activeIndex = getActiveIndex();
 
   const renderTabIcon = (iconName: string, focused: boolean, color: string) => (
     <AnimatedTabIcon
       iconName={iconName}
       focused={focused}
       color={color}
-      activeColor={colors.tint}
     />
   );
 
@@ -97,26 +119,31 @@ export default function TabLayout() {
     <Tabs
       initialRouteName="index"
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        tabBarInactiveTintColor: '#A0A0A0',
+        tabBarActiveTintColor: EventuColors.magenta,
+        tabBarInactiveTintColor: EventuColors.mediumGray,
         headerShown: false,
         tabBarShowLabel: false,
         tabBarButton: HapticTab,
         tabBarStyle: styles.tabBar,
         tabBarBackground: () => (
-          <BlurView
-            intensity={Platform.OS === 'ios' ? 30 : 20}
-            tint={colorScheme === 'dark' ? 'dark' : 'light'}
-            style={StyleSheet.absoluteFill}
-          />
+          <View style={styles.tabBarBackground}>
+            <BlurView
+              intensity={Platform.OS === 'ios' ? 80 : 60}
+              tint="light"
+              style={StyleSheet.absoluteFill}
+            />
+            <AnimatedIndicator activeIndex={activeIndex} />
+          </View>
         ),
         tabBarItemStyle: {
           flex: 1,
           justifyContent: 'center',
           alignItems: 'center',
           paddingVertical: 0,
-          height: 70,
-          minHeight: 70,
+          paddingTop: 4,
+          paddingBottom: 0,
+          height: TAB_BAR_HEIGHT,
+          minHeight: TAB_BAR_HEIGHT,
         },
         tabBarHideOnKeyboard: true,
         tabBarAccessibilityLabel: 'Tab bar',
@@ -150,72 +177,88 @@ const styles = StyleSheet.create({
   tabBar: {
     position: 'absolute',
     bottom: Platform.OS === 'ios' ? 30 : 25,
-    left: (width - (width * 0.65)) / 2,
-    width: width * 0.65,
-    height: 70,
-    borderRadius: 35,
-    overflow: 'hidden',
+    left: (width - TAB_BAR_WIDTH) / 2,
+    width: TAB_BAR_WIDTH,
+    height: TAB_BAR_HEIGHT,
+    borderRadius: TAB_BAR_HEIGHT / 2,
+    overflow: 'visible',
     flexDirection: 'row',
     justifyContent: 'space-evenly',
     alignItems: 'center',
-    paddingHorizontal: 0,
+    paddingHorizontal: 16,
     paddingVertical: 0,
     borderTopWidth: 0,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
+    borderWidth: 0,
     zIndex: 1000,
+    backgroundColor: 'transparent',
     ...Platform.select({
       ios: {
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
         shadowColor: '#000',
         shadowOffset: {
           width: 0,
-          height: 12,
+          height: 10,
         },
-        shadowOpacity: 0.25,
-        shadowRadius: 24,
+        shadowOpacity: 0.15,
+        shadowRadius: 40,
       },
       android: {
-        backgroundColor: 'rgba(255, 255, 255, 0.12)',
         elevation: 12,
       },
     }),
   },
-  navIcon: {
-    width: 50,
-    height: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 16,
-    marginVertical: 0,
-  },
-  activeTabIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
+  tabBarBackground: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: TAB_BAR_HEIGHT / 2,
+    backgroundColor: EventuColors.white,
     overflow: 'hidden',
-    marginVertical: 0,
     ...Platform.select({
       ios: {
-        shadowColor: EventuColors.hotPink,
+        shadowColor: '#000',
         shadowOffset: {
           width: 0,
-          height: 8,
+          height: 10,
         },
-        shadowOpacity: 0.6,
-        shadowRadius: 20,
+        shadowOpacity: 0.15,
+        shadowRadius: 40,
       },
       android: {
-        elevation: 10,
+        elevation: 12,
       },
     }),
   },
-  activeTabGradient: {
-    width: '100%',
-    height: '100%',
+  tabIconContainer: {
+    width: 48,
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: 24,
+  },
+  indicator: {
+    position: 'absolute',
+    bottom: 6,
+    height: 2.5,
+    borderRadius: 1.25,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  indicatorBar: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: EventuColors.magenta,
+    borderRadius: 1.25,
+    ...Platform.select({
+      ios: {
+        shadowColor: EventuColors.magenta,
+        shadowOffset: {
+          width: 0,
+          height: 2,
+        },
+        shadowOpacity: 0.5,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
 });

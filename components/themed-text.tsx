@@ -1,11 +1,13 @@
 import { StyleSheet, Text, type TextProps } from 'react-native';
 
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { Typography } from '@/constants/theme';
+import { EventuColors } from '@/constants/theme';
 
 export type ThemedTextProps = TextProps & {
   lightColor?: string;
   darkColor?: string;
-  type?: 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link';
+  type?: 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link' | 'heading' | 'caption' | 'body';
 };
 
 export function ThemedText({
@@ -22,9 +24,12 @@ export function ThemedText({
       style={[
         { color },
         type === 'default' ? styles.default : undefined,
+        type === 'body' ? styles.body : undefined,
         type === 'title' ? styles.title : undefined,
+        type === 'heading' ? styles.heading : undefined,
         type === 'defaultSemiBold' ? styles.defaultSemiBold : undefined,
         type === 'subtitle' ? styles.subtitle : undefined,
+        type === 'caption' ? styles.caption : undefined,
         type === 'link' ? styles.link : undefined,
         style,
       ]}
@@ -35,26 +40,46 @@ export function ThemedText({
 
 const styles = StyleSheet.create({
   default: {
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: Typography.fontSizes.base,
+    lineHeight: Typography.fontSizes.base * Typography.lineHeights.normal,
+    fontWeight: Typography.fontWeights.normal,
+  },
+  body: {
+    fontSize: Typography.fontSizes.base,
+    lineHeight: Typography.fontSizes.base * Typography.lineHeights.normal,
+    fontWeight: Typography.fontWeights.normal,
   },
   defaultSemiBold: {
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: '600',
+    fontSize: Typography.fontSizes.base,
+    lineHeight: Typography.fontSizes.base * Typography.lineHeights.normal,
+    fontWeight: Typography.fontWeights.semibold,
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    lineHeight: 32,
+    fontSize: Typography.fontSizes['4xl'],
+    fontWeight: Typography.fontWeights.extrabold,
+    lineHeight: Typography.fontSizes['4xl'] * Typography.lineHeights.tight,
+    letterSpacing: Typography.letterSpacing.tight,
+  },
+  heading: {
+    fontSize: Typography.fontSizes['2xl'],
+    fontWeight: Typography.fontWeights.bold,
+    lineHeight: Typography.fontSizes['2xl'] * Typography.lineHeights.tight,
+    letterSpacing: Typography.letterSpacing.tight,
   },
   subtitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: Typography.fontSizes.xl,
+    fontWeight: Typography.fontWeights.bold,
+    lineHeight: Typography.fontSizes.xl * Typography.lineHeights.normal,
+  },
+  caption: {
+    fontSize: Typography.fontSizes.sm,
+    lineHeight: Typography.fontSizes.sm * Typography.lineHeights.normal,
+    fontWeight: Typography.fontWeights.medium,
   },
   link: {
-    lineHeight: 30,
-    fontSize: 16,
-    color: '#0a7ea4',
+    fontSize: Typography.fontSizes.base,
+    lineHeight: Typography.fontSizes.base * Typography.lineHeights.normal,
+    fontWeight: Typography.fontWeights.semibold,
+    color: EventuColors.magenta,
   },
 });

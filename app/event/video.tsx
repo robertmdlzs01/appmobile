@@ -23,7 +23,7 @@ export default function TeaserVideoScreen() {
   }>();
   const [isFullscreen, setIsFullscreen] = useState(true);
 
-  const videoUrlToPlay = videoUrl || 'https://example.com/video.mp4';
+  const videoUrlToPlay = videoUrl || '';
   const eventTitle = eventName || 'Evento';
 
   const player = useVideoPlayer(videoUrlToPlay, (player) => {

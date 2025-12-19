@@ -1,8 +1,10 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import * as ScreenCapture from 'expo-screen-capture';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -12,6 +14,13 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useGlobalScreenCaptureBlock } from '@/hooks/useScreenCapture';
 
 SplashScreen.preventAutoHideAsync();
+
+
+if (Platform.OS !== 'web') {
+  ScreenCapture.preventScreenCaptureAsync().catch(() => {
+    
+  });
+}
 
 export const unstable_settings = {
   initialRouteName: 'splash',
@@ -23,7 +32,6 @@ function RootLayoutNav() {
   const router = useRouter();
   const colorScheme = useColorScheme();
 
-  // Bloquear capturas de pantalla globalmente (excepto en rutas permitidas)
   useGlobalScreenCaptureBlock(true);
 
   useEffect(() => {
@@ -32,18 +40,24 @@ function RootLayoutNav() {
     const inAuthGroup = 
       segments[0] === 'welcome' || 
       segments[0] === 'login' || 
-      segments[0] === 'register' ||
-      segments[0] === 'auth';
+      segments[0] === 'register';
+    const inAuthFlow = segments[0] === 'auth'; 
     const inTabs = segments[0] === '(tabs)';
 
-    if (!isAuthenticated && !inAuthGroup) {
+    if (!isAuthenticated && !inAuthGroup && !inAuthFlow) {
       router.replace('/welcome');
-    } else if (isAuthenticated && inAuthGroup) {
+    } 
+    else if (isAuthenticated && inAuthGroup) {
+      // Si el usuario está autenticado y trata de acceder a welcome/login/register, redirigir a tabs
       router.replace('/(tabs)');
-    } else if (!isAuthenticated && inTabs) {
+    } 
+    else if (isAuthenticated && inAuthFlow) {
+      // Si el usuario está autenticado y trata de acceder a las pantallas de registro/onboarding, redirigir a tabs
+      router.replace('/(tabs)');
+    }
+    else if (!isAuthenticated && inTabs) {
       router.replace('/welcome');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, isLoading, segments]);
 
   return (
@@ -58,7 +72,6 @@ function RootLayoutNav() {
         <Stack.Screen name="auth/new-password" options={{ headerShown: false }} />
         <Stack.Screen name="auth/preferences-gender" options={{ headerShown: false }} />
         <Stack.Screen name="auth/preferences-age" options={{ headerShown: false }} />
-        <Stack.Screen name="auth/preferences-interest" options={{ headerShown: false }} />
         <Stack.Screen name="auth/complete-profile" options={{ headerShown: false }} />
         <Stack.Screen name="auth/location-access" options={{ headerShown: false }} />
         <Stack.Screen name="auth/enter-location" options={{ headerShown: false }} />
@@ -69,9 +82,6 @@ function RootLayoutNav() {
         <Stack.Screen name="tickets/transfer" options={{ headerShown: false }} />
         <Stack.Screen name="tickets/offline" options={{ headerShown: false }} />
         <Stack.Screen name="tickets/event-info" options={{ headerShown: false }} />
-        <Stack.Screen name="tickets/scan" options={{ headerShown: false }} />
-        <Stack.Screen name="staff/index" options={{ headerShown: false }} />
-        <Stack.Screen name="staff/scan" options={{ headerShown: false }} />
         <Stack.Screen name="event/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="event/select-seat" options={{ headerShown: false }} />
         <Stack.Screen name="event/video" options={{ headerShown: false }} />
@@ -107,12 +117,32 @@ export default function RootLayout() {
   const [appIsReady, setAppIsReady] = useState(false);
 
   useEffect(() => {
+    if (Platform.OS !== 'web') {
+      ScreenCapture.preventScreenCaptureAsync().catch(() => {
+      });
+      
+      const interval = setInterval(() => {
+        ScreenCapture.preventScreenCaptureAsync().catch(() => {
+        });
+      }, 2000);
+      
+      return () => {
+        clearInterval(interval);
+      };
+    }
+  }, []);
+
+  useEffect(() => {
     async function prepare() {
       try {
         await new Promise((resolve) => setTimeout(resolve, 600));
       } finally {
         setAppIsReady(true);
         await SplashScreen.hideAsync();
+        if (Platform.OS !== 'web') {
+          ScreenCapture.preventScreenCaptureAsync().catch(() => {
+          });
+        }
       }
     }
     prepare();

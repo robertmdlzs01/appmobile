@@ -5,9 +5,7 @@ import { UserModel } from '../models/User';
 
 const router = Router();
 
-/**
- * Genera un token JWT
- */
+
 function generateToken(user: { id: string; email: string; role: string }): string {
   const jwtSecret = process.env.JWT_SECRET;
   const jwtExpiresIn = process.env.JWT_EXPIRES_IN || '7d';
@@ -27,10 +25,7 @@ function generateToken(user: { id: string; email: string; role: string }): strin
   );
 }
 
-/**
- * POST /api/auth/register
- * Registra un nuevo usuario
- */
+
 router.post('/register', async (req: Request, res: Response) => {
   try {
     const { email, name, password, phone } = req.body;
@@ -85,10 +80,7 @@ router.post('/register', async (req: Request, res: Response) => {
   }
 });
 
-/**
- * POST /api/auth/login
- * Inicia sesión
- */
+
 router.post('/login', async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
@@ -133,10 +125,7 @@ router.post('/login', async (req: Request, res: Response) => {
   }
 });
 
-/**
- * POST /api/auth/refresh
- * Refresca el token (requiere autenticación)
- */
+
 router.post('/refresh', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
@@ -178,10 +167,7 @@ router.post('/refresh', authenticateToken, async (req: AuthRequest, res: Respons
   }
 });
 
-/**
- * GET /api/auth/me
- * Obtiene el usuario actual (requiere autenticación)
- */
+
 router.get('/me', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;

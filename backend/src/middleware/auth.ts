@@ -70,9 +70,7 @@ export const optionalAuth = (
   next();
 };
 
-/**
- * Middleware para verificar que el usuario es staff o admin
- */
+
 export const requireStaff = async (
   req: AuthRequest,
   res: Response,

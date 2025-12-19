@@ -46,7 +46,7 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
   }, [apiEvents]);
 
   const featuredEvents = useMemo(() => {
-    // Si el backend devuelve eventos destacados, usarlos; sino, usar los primeros 3
+    
     if (apiFeaturedEvents && apiFeaturedEvents.length > 0) {
       return apiFeaturedEvents.map(transformEvent);
     }

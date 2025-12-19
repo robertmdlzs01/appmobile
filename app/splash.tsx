@@ -20,11 +20,11 @@ export default function SplashScreen() {
   const logoOpacity = useSharedValue(0);
 
   useEffect(() => {
-    // Animación de entrada del logo
+    
     logoScale.value = withTiming(1, { duration: 600 });
     logoOpacity.value = withTiming(1, { duration: 600 });
 
-    // Pulso sutil del logo
+    
     logoScale.value = withRepeat(
       withSequence(
         withTiming(1.05, { duration: 1000 }),
@@ -43,7 +43,7 @@ export default function SplashScreen() {
         } else {
           router.replace('/welcome');
         }
-      }, 2000); // Mostrar splash por 2 segundos
+      }, 2000); 
 
       return () => clearTimeout(timer);
     }

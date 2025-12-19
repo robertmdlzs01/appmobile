@@ -8,10 +8,7 @@ interface SafeAreaHeaderProps {
   additionalPadding?: number;
 }
 
-/**
- * Componente wrapper para headers que respeta el SafeArea
- * En iOS respeta la Dynamic Island y en Android la status bar
- */
+
 export function SafeAreaHeader({ 
   children, 
   style, 

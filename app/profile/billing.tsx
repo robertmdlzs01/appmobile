@@ -13,8 +13,10 @@ import {
   View,
 } from 'react-native';
 import * as Sharing from 'expo-sharing';
+import { useSafeAreaHeaderPadding } from '@/hooks/useSafeAreaInsets';
 
 export default function BillingScreen() {
+  const { paddingTop: safeAreaPaddingTop } = useSafeAreaHeaderPadding();
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'paid' | 'pending' | 'cancelled'>('all');
 
   const invoices = [
@@ -100,7 +102,7 @@ export default function BillingScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: safeAreaPaddingTop + 16 }]}>
           <Pressable style={styles.iconButton} onPress={() => router.back()}>
             <MaterialIcons name="arrow-back" size={24} color={EventuColors.black} />
           </Pressable>
@@ -312,7 +314,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 10,
     paddingBottom: 20,
   },
   iconButton: {

@@ -8,8 +8,8 @@ interface UseTicketValidationReturn {
   refresh: () => Promise<void>;
 }
 
-const POLLING_INTERVAL = 2000; // Poll cada 2 segundos (más frecuente)
-const POLLING_INTERVAL_SCANNED = 1000; // Poll cada 1 segundo cuando está escaneado
+const POLLING_INTERVAL = 1500; 
+const POLLING_INTERVAL_SCANNED = 800; 
 
 export function useTicketValidation(
   ticketId: string | null | undefined,
@@ -32,13 +32,15 @@ export function useTicketValidation(
       if (response.success && response.data && isMountedRef.current) {
         const newValidation = response.data.validation;
         
-        // Actualizar inmediatamente si hay cambio de estado
+        
         setValidation(newValidation);
         
-        // Si el ticket fue validado, forzar actualización visual
+        
         if (newValidation?.validated && !previousValidationRef.current?.validated) {
-          // El estado ya se actualizó arriba, solo necesitamos asegurar que se refleje
-          console.log('Ticket validado en tiempo real!');
+          
+          console.log('✅ Ticket validado en tiempo real!');
+          
+          setValidation({ ...newValidation });
         }
         
         previousValidationRef.current = newValidation;
@@ -71,11 +73,11 @@ export function useTicketValidation(
       return;
     }
 
-    // Cargar inicialmente
+    
     setLoading(true);
     fetchValidation();
 
-    // Configurar polling - intervalo más frecuente cuando está escaneado
+    
     let interval = POLLING_INTERVAL;
     
     const checkAndSetupPolling = () => {
@@ -83,19 +85,19 @@ export function useTicketValidation(
         clearInterval(pollingIntervalRef.current);
       }
       
-      // Determinar intervalo basado en el estado actual
+      
       const currentValidation = previousValidationRef.current;
       if (currentValidation?.validationStatus === 'scanned' && !currentValidation?.validated) {
         interval = POLLING_INTERVAL_SCANNED;
       } else if (currentValidation?.validated) {
-        interval = POLLING_INTERVAL * 2; // Menos frecuente si ya está validado
+        interval = POLLING_INTERVAL * 2; 
       } else {
         interval = POLLING_INTERVAL;
       }
       
       pollingIntervalRef.current = setInterval(() => {
         fetchValidation();
-        // Reajustar si cambió el estado
+        
         const newValidation = previousValidationRef.current;
         let newInterval = POLLING_INTERVAL;
         if (newValidation?.validationStatus === 'scanned' && !newValidation?.validated) {

@@ -13,7 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useState, useMemo, useEffect } from 'react';
-import { Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View, Modal, TouchableOpacity, Alert } from 'react-native';
+import { Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View, Modal, TouchableOpacity, Alert, Image, Dimensions } from 'react-native';
 interface Ticket {
   id: string;
   eventId: string;
@@ -30,6 +30,7 @@ interface Ticket {
 }
 import { useAuth } from '@/contexts/AuthContext';
 import { mockTickets } from '@/services/mockTickets';
+import { mockEvents } from '@/services/mockData';
 
 function parseEventDate(eventDate: string): Date | null {
   try {
@@ -128,7 +129,11 @@ type TicketDisplay = {
   location: string;
   quantity: number;
   status: 'activo' | 'usado' | 'cancelado';
+  eventId?: string;
+  imageUrl?: string;
 };
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function TicketsScreen() {
   const colorScheme = useColorScheme();
@@ -205,18 +210,25 @@ export default function TicketsScreen() {
           status: ticket.status,
         }));
         
-        const formattedTickets: TicketDisplay[] = apiTickets.map((ticket: Ticket) => ({
-          id: ticket.id,
-          eventName: ticket.eventName,
-          date: ticket.date,
-          dateDisplay: ticket.dateDisplay || formatDateDisplay(ticket.date),
-          time: ticket.time,
-          venue: ticket.venue || ticket.location || 'No especificado',
-          seat: ticket.seat,
-          location: ticket.location,
-          quantity: ticket.quantity || 1,
-          status: mapStatus(ticket.status),
-        }));
+        const formattedTickets: TicketDisplay[] = apiTickets.map((ticket: Ticket) => {
+          const event = mockEvents.find(e => e.id === ticket.eventId);
+          const imageUrl = event?.images && event.images.length > 0 ? event.images[0] : undefined;
+          
+          return {
+            id: ticket.id,
+            eventId: ticket.eventId,
+            eventName: ticket.eventName,
+            date: ticket.date,
+            dateDisplay: ticket.dateDisplay || formatDateDisplay(ticket.date),
+            time: ticket.time,
+            venue: ticket.venue || ticket.location || 'No especificado',
+            seat: ticket.seat,
+            location: ticket.location,
+            quantity: ticket.quantity || 1,
+            status: mapStatus(ticket.status),
+            imageUrl,
+          };
+        });
 
         const futureTickets = formattedTickets.filter((ticket) => {
           const isPast = isEventPast(ticket.date);
@@ -420,18 +432,25 @@ export default function TicketsScreen() {
                           price: ticket.price,
                           status: ticket.status,
                         }));
-                        const formattedTickets: TicketDisplay[] = apiTickets.map((ticket: Ticket) => ({
-                          id: ticket.id,
-                          eventName: ticket.eventName,
-                          date: ticket.date,
-                          dateDisplay: ticket.dateDisplay || formatDateDisplay(ticket.date),
-                          time: ticket.time,
-                          venue: ticket.venue || ticket.location || 'No especificado',
-                          seat: ticket.seat,
-                          location: ticket.location,
-                          quantity: ticket.quantity || 1,
-                          status: mapStatus(ticket.status),
-                        }));
+                        const formattedTickets: TicketDisplay[] = apiTickets.map((ticket: Ticket) => {
+                          const event = mockEvents.find(e => e.id === ticket.eventId);
+                          const imageUrl = event?.images && event.images.length > 0 ? event.images[0] : undefined;
+                          
+                          return {
+                            id: ticket.id,
+                            eventId: ticket.eventId,
+                            eventName: ticket.eventName,
+                            date: ticket.date,
+                            dateDisplay: ticket.dateDisplay || formatDateDisplay(ticket.date),
+                            time: ticket.time,
+                            venue: ticket.venue || ticket.location || 'No especificado',
+                            seat: ticket.seat,
+                            location: ticket.location,
+                            quantity: ticket.quantity || 1,
+                            status: mapStatus(ticket.status),
+                            imageUrl,
+                          };
+                        });
                         const futureTickets = formattedTickets.filter((ticket) => !isEventPast(ticket.date));
                         setTickets(futureTickets);
                       } catch (err: any) {
@@ -480,19 +499,14 @@ export default function TicketsScreen() {
               ) : (
                 filteredAndSortedTickets.map((ticket, index) => {
                 const isAvailable = isEventDay(ticket.date);
+                const defaultImageUri = 'https://via.placeholder.com/400x300?text=Evento';
+                const imageUri = ticket.imageUrl || defaultImageUri;
                 
                 return (
                   <AnimatedCard key={ticket.id} index={index} delay={index * 50}>
                     <PressableCard
-                      style={[
-                        styles.ticketCard,
-                        {
-                          backgroundColor: EventuColors.white,
-                          borderColor: isAvailable ? EventuColors.magenta : EventuColors.lightGray,
-                        },
-                      ]}
+                      style={styles.ticketCard}
                       onPress={() => {
-                        
                         if (isAvailable) {
                           router.push(`/ticket/${ticket.id}`);
                         }
@@ -500,67 +514,55 @@ export default function TicketsScreen() {
                       disabled={!isAvailable}
                       hapticFeedback={true}
                     >
-                      <View style={styles.ticketHeader}>
-                        <View style={styles.ticketInfo}>
-                          <Text style={styles.eventName}>
+                      <View style={styles.ticketImageContainer}>
+                        <Image 
+                          source={{ uri: imageUri }} 
+                          style={styles.ticketImage}
+                          resizeMode="cover"
+                        />
+                        <LinearGradient
+                          colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.7)']}
+                          style={styles.ticketImageOverlay}
+                        />
+                        
+                        {/* Status Badge - Top Right */}
+                        {isAvailable && (
+                          <View style={styles.confirmedBadge}>
+                            <MaterialIcons name="check-circle" size={12} color={EventuColors.white} />
+                            <Text style={styles.confirmedBadgeText}>Confirmado</Text>
+                          </View>
+                        )}
+
+                        {/* Ticket Count Badge - Top Right */}
+                        <View style={styles.ticketCountBadge}>
+                          <MaterialIcons name="confirmation-number" size={14} color={EventuColors.white} />
+                          <Text style={styles.ticketCountText}>{ticket.quantity}</Text>
+                        </View>
+
+                        {/* Event Info Overlay */}
+                        <View style={styles.ticketImageContent}>
+                          <Text style={styles.eventNameImage} numberOfLines={2}>
                             {ticket.eventName}
                           </Text>
-                          <View style={styles.ticketMetaRow}>
-                            <View style={styles.ticketMeta}>
-                              <MaterialIcons name="access-time" size={14} color={EventuColors.magenta} />
-                              <Text style={styles.metaText}>{ticket.time}</Text>
+                          <View style={styles.eventMetaRow}>
+                            <View style={styles.eventMetaItem}>
+                              <MaterialIcons name="event" size={14} color="rgba(255,255,255,0.9)" />
+                              <Text style={styles.eventMetaText}>{ticket.dateDisplay}</Text>
                             </View>
-                            <View style={styles.ticketMeta}>
-                              <MaterialIcons name="place" size={14} color={EventuColors.magenta} />
-                              <Text style={styles.metaText}>{ticket.venue}</Text>
-                            </View>
-                            <View style={styles.ticketMeta}>
-                              <MaterialIcons name="event-seat" size={14} color={EventuColors.magenta} />
-                              <Text style={styles.metaText}>{ticket.seat}</Text>
+                            <View style={styles.eventMetaItem}>
+                              <MaterialIcons name="place" size={14} color="rgba(255,255,255,0.9)" />
+                              <Text style={styles.eventMetaText} numberOfLines={1}>{ticket.location}</Text>
                             </View>
                           </View>
                         </View>
-                        <View
-                          style={[
-                            styles.statusBadge,
-                            {
-                              backgroundColor: EventuColors.magenta + '20',
-                            },
-                          ]}>
-                          <Text
-                            style={[
-                              styles.statusText,
-                              {
-                                color: EventuColors.magenta,
-                              },
-                            ]}>
-                            {ticket.quantity} {ticket.quantity === 1 ? 'boleto' : 'boletos'}
-                          </Text>
-                        </View>
                       </View>
 
-                      {!isAvailable && (
-                        <View
-                          style={[
-                            styles.availabilityMessage,
-                            {
-                              backgroundColor: 'rgba(164, 46, 255, 0.1)',
-                            },
-                          ]}>
-                          <MaterialIcons name="schedule" size={14} color={EventuColors.violet} />
-                          <Text style={styles.availabilityText}>
-                            Solo estará disponible el día del evento ({formatEventDate(ticket.date)})
-                          </Text>
-                        </View>
-                      )}
-
+                      {/* Quick Actions */}
                       <View style={styles.ticketActions}>
                         <PressableCard
                           style={[
-                            styles.actionButton,
-                        {
-                          backgroundColor: isAvailable ? EventuColors.magenta : EventuColors.mediumGray,
-                        },
+                            styles.primaryActionButton,
+                            !isAvailable && styles.disabledActionButton,
                           ]}
                           disabled={!isAvailable}
                           onPress={(e) => {
@@ -568,28 +570,26 @@ export default function TicketsScreen() {
                             router.push(`/ticket/${ticket.id}`);
                           }}
                         >
-                          <MaterialIcons name="qr-code" size={18} color={EventuColors.white} />
-                          <Text style={styles.actionButtonText}>
-                            {isAvailable ? 'Ver QR' : 'No disponible'}
+                          <MaterialIcons 
+                            name="qr-code-2" 
+                            size={18} 
+                            color={isAvailable ? EventuColors.white : EventuColors.mediumGray} 
+                          />
+                          <Text style={[
+                            styles.primaryActionText,
+                            !isAvailable && styles.disabledActionText,
+                          ]}>
+                            {isAvailable ? 'Mostrar QR' : 'No disponible'}
                           </Text>
                         </PressableCard>
                         <PressableCard
-                          style={[
-                            styles.actionButton,
-                            styles.secondaryButton,
-                            {
-                              borderColor: EventuColors.magenta,
-                            },
-                          ]}
+                          style={styles.secondaryActionButton}
                           onPress={(e) => {
                             e.stopPropagation();
                             router.push(`/tickets/transfer?ticketId=${ticket.id}`);
                           }}
                         >
-                          <MaterialIcons name="swap-horiz" size={18} color={EventuColors.magenta} />
-                          <Text style={[styles.actionButtonText, { color: EventuColors.magenta }]}>
-                            Transferir
-                          </Text>
+                          <Text style={styles.secondaryActionText}>Transferir</Text>
                         </PressableCard>
                       </View>
                     </PressableCard>
@@ -714,7 +714,7 @@ const styles = StyleSheet.create({
   },
   backgroundGradient: {
     flex: 1,
-    backgroundColor: EventuColors.white,
+    backgroundColor: '#FAFBFC',
   },
   scrollView: {
     flex: 1,
@@ -724,17 +724,19 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 20,
-    paddingBottom: 24,
+    paddingBottom: 20,
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '800' as const,
     color: EventuColors.black,
     marginBottom: 4,
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 15,
     color: EventuColors.mediumGray,
+    fontWeight: '500',
   },
   emptyState: {
     flex: 1,
@@ -770,96 +772,145 @@ const styles = StyleSheet.create({
   },
   ticketsContainer: {
     paddingHorizontal: 20,
+    paddingTop: 8,
     paddingBottom: 20,
     gap: 20,
   },
   ticketCard: {
-    borderRadius: Radius['3xl'],
+    borderRadius: Radius['2xl'],
+    backgroundColor: EventuColors.white,
+    overflow: 'hidden',
     borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
+    ...Shadows.md,
+    shadowColor: EventuColors.magenta,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 8,
+    marginBottom: 4,
+  },
+  ticketImageContainer: {
+    height: 220,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  ticketImage: {
+    width: '100%',
+    height: '100%',
+  },
+  ticketImageOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  ticketImageContent: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     padding: 20,
-    ...Shadows.lg,
-    shadowColor: EventuColors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
   },
-  ticketHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-    gap: 12,
-  },
-  ticketInfo: {
-    flex: 1,
-    gap: 10,
-  },
-  eventName: {
+  eventNameImage: {
     fontSize: 22,
     fontWeight: '800' as const,
-    marginBottom: 4,
-    color: EventuColors.black,
+    color: EventuColors.white,
+    marginBottom: 12,
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
-  ticketMetaRow: {
+  eventMetaRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
+    gap: 16,
     alignItems: 'center',
   },
-  ticketMeta: {
+  eventMetaItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
-  metaText: {
+  eventMetaText: {
     fontSize: 13,
-    color: EventuColors.mediumGray,
+    color: 'rgba(255,255,255,0.95)',
+    fontWeight: '500',
+    textShadowColor: 'rgba(0,0,0,0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
-  statusBadge: {
+  confirmedBadge: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#10B981',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: Radius.full,
+  },
+  confirmedBadgeText: {
+    color: EventuColors.white,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  ticketCountBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: EventuColors.magenta,
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: Radius.lg,
-    alignSelf: 'flex-start',
+    paddingVertical: 6,
+    borderRadius: Radius.full,
   },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
+  ticketCountText: {
+    color: EventuColors.white,
+    fontSize: 13,
+    fontWeight: '700',
   },
   ticketActions: {
     flexDirection: 'row',
+    padding: 16,
     gap: 12,
+    backgroundColor: 'rgba(248, 249, 250, 0.8)',
   },
-  actionButton: {
+  primaryActionButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 14,
-    borderRadius: Radius.xl,
+    borderRadius: Radius.lg,
+    backgroundColor: EventuColors.magenta,
   },
-  secondaryButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
+  disabledActionButton: {
+    backgroundColor: EventuColors.lightGray,
   },
-  actionButtonText: {
+  primaryActionText: {
     color: EventuColors.white,
-    fontWeight: '600' as const,
+    fontWeight: '700' as const,
     fontSize: 14,
   },
-  availabilityMessage: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    padding: 12,
-    borderRadius: Radius.lg,
-    marginBottom: 16,
-  },
-  availabilityText: {
-    fontSize: 12,
-    flex: 1,
+  disabledActionText: {
     color: EventuColors.mediumGray,
+  },
+  secondaryActionButton: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: Radius.lg,
+    backgroundColor: 'transparent',
+  },
+  secondaryActionText: {
+    color: EventuColors.magenta,
+    fontWeight: '600' as const,
+    fontSize: 14,
   },
   skeletonContainer: {
     paddingHorizontal: 20,
@@ -882,7 +933,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   filterButton: {
     width: 44,

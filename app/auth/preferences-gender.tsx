@@ -9,12 +9,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 const genders = [
-  { id: 'male', label: 'Masculino', emoji: '👨' },
-  { id: 'female', label: 'Femenino', emoji: '👩' },
-  { id: 'other', label: 'Otro', emoji: '🧑' },
-  { id: 'prefer-not', label: 'Prefiero no decir', emoji: '🤐' },
+  { id: 'male', label: 'Masculino', icon: 'man' },
+  { id: 'female', label: 'Femenino', icon: 'woman' },
+  { id: 'other', label: 'Otro', icon: 'person' },
+  { id: 'prefer-not', label: 'Prefiero no decir', icon: 'visibility-off' },
 ];
 
 export default function PreferencesGenderScreen() {
@@ -46,7 +47,7 @@ export default function PreferencesGenderScreen() {
             <Pressable onPress={() => router.back()} style={styles.backButton}>
               <IconSymbol name="chevron.left" size={24} color={colors.text} />
             </Pressable>
-            <Pressable onPress={() => router.push('/auth/preferences-interest')}>
+            <Pressable onPress={() => router.push('/auth/preferences-age')}>
               <ThemedText style={styles.skipText}>Omitir</ThemedText>
             </Pressable>
           </View>
@@ -57,7 +58,7 @@ export default function PreferencesGenderScreen() {
               colors={[EventuColors.hotPink + 'CC', EventuColors.magenta + 'CC']} 
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
-              style={[styles.progressFill, { width: '33%' }]}
+              style={[styles.progressFill, { width: '50%' }]}
             />
           </View>
 
@@ -91,7 +92,20 @@ export default function PreferencesGenderScreen() {
                   onPress={() => setSelectedGender(gender.id)}
                   hapticFeedback={true}
                 >
-                  <Text style={styles.emoji}>{gender.emoji}</Text>
+                  <View style={[
+                    styles.iconContainer,
+                    {
+                      backgroundColor: isSelected 
+                        ? EventuColors.hotPink + '15' 
+                        : EventuColors.lightGray + '30',
+                    }
+                  ]}>
+                    <MaterialIcons 
+                      name={gender.icon as any} 
+                      size={28} 
+                      color={isSelected ? EventuColors.hotPink : EventuColors.mediumGray} 
+                    />
+                  </View>
                   <ThemedText
                     style={[
                       styles.optionText,
@@ -213,8 +227,12 @@ const styles = StyleSheet.create({
     ...Shadows.md,
     shadowColor: EventuColors.hotPink + '66', 
   },
-  emoji: {
-    fontSize: 32,
+  iconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginRight: 16,
   },
   optionText: {

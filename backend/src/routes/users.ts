@@ -4,10 +4,7 @@ import { UpdateUserData, UserModel } from '../models/User';
 
 const router = Router();
 
-/**
- * GET /api/users/profile
- * Obtiene el perfil del usuario autenticado
- */
+
 router.get('/profile', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
@@ -39,10 +36,7 @@ router.get('/profile', authenticateToken, async (req: AuthRequest, res: Response
   }
 });
 
-/**
- * PUT /api/users/profile
- * Actualiza el perfil del usuario autenticado
- */
+
 router.put('/profile', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
@@ -74,10 +68,7 @@ router.put('/profile', authenticateToken, async (req: AuthRequest, res: Response
   }
 });
 
-/**
- * POST /api/users/change-password
- * Cambia la contraseña del usuario autenticado
- */
+
 router.post('/change-password', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;

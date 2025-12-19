@@ -27,14 +27,36 @@ export default function LocationAccessScreen() {
   const { requestPermissions, getCurrentLocation } = useLocation();
   const [loading, setLoading] = useState(false);
 
-  const handleEnableLocation = async () => {
+  const handleEnableLocation = () => {
+    Alert.alert(
+      'Permitir acceso a ubicación',
+      'Eventu.co necesita acceso a tu ubicación para mostrarte eventos cercanos y recomendaciones personalizadas. ¿Deseas habilitar la búsqueda por localización?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+          onPress: () => {
+            handleSkipLocation();
+          },
+        },
+        {
+          text: 'Permitir',
+          style: 'default',
+          onPress: async () => {
+            await requestLocationPermission();
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  const requestLocationPermission = async () => {
     setLoading(true);
     try {
-      
       const hasPermission = await requestPermissions();
       
       if (hasPermission) {
-        
         await getCurrentLocation();
       }
 
@@ -44,17 +66,39 @@ export default function LocationAccessScreen() {
         name: 'Usuario Eventu',
       });
 
+      // Reemplazar completamente la navegación para que no pueda volver al proceso de registro
+      // Usar replace para eliminar la ruta actual del historial
       router.replace('/(tabs)');
     } catch (error) {
       console.error('Error enabling location:', error);
-      Alert.alert('Error', 'No se pudo habilitar la ubicación. Intenta nuevamente.');
+      Alert.alert(
+        'Error',
+        'No se pudo habilitar la ubicación. Puedes continuar sin ella y configurarla más tarde desde los ajustes.',
+        [
+          {
+            text: 'Continuar sin ubicación',
+            onPress: handleSkipLocation,
+          },
+        ]
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  const handleNotNow = () => {
-    router.replace('/auth/enter-location');
+  const handleSkipLocation = async () => {
+    try {
+      await autoLogin({
+        id: Date.now().toString(),
+        email: 'usuario@eventu.com',
+        name: 'Usuario Eventu',
+      });
+      // Reemplazar completamente la navegación para que no pueda volver al proceso de registro
+      router.replace('/(tabs)');
+    } catch (error) {
+      console.error('Error during auto login:', error);
+      Alert.alert('Error', 'No se pudo completar el proceso. Intenta nuevamente.');
+    }
   };
 
   const benefits = [
@@ -107,11 +151,10 @@ export default function LocationAccessScreen() {
           {}
           <View style={styles.titleSection}>
             <ThemedText type="title" style={styles.title}>
-              Habilitar Acceso a Ubicación
+              Habilitar Búsqueda por Localización
             </ThemedText>
             <ThemedText style={styles.subtitle}>
-              Necesitamos tu ubicación para mostrarte eventos cerca de ti y
-              proporcionarte recomendaciones personalizadas
+              Permite el acceso a tu ubicación para encontrar eventos cercanos y recibir recomendaciones personalizadas basadas en tu ubicación actual
             </ThemedText>
           </View>
 
@@ -159,21 +202,12 @@ export default function LocationAccessScreen() {
                 {loading ? (
                   <ActivityIndicator size="small" color={EventuColors.white} />
                 ) : (
-                  <ThemedText style={styles.buttonText}>Habilitar Ubicación</ThemedText>
+                  <View style={styles.buttonContent}>
+                    <IconSymbol name="location.fill" size={20} color={EventuColors.white} />
+                    <ThemedText style={styles.buttonText}>Permitir Acceso a Ubicación</ThemedText>
+                  </View>
                 )}
               </LinearGradient>
-            </Pressable>
-
-            <Pressable
-              style={({ pressed }) => [
-                styles.secondaryButton,
-                { opacity: pressed ? 0.7 : 1 },
-              ]}
-              onPress={handleNotNow}
-            >
-              <ThemedText style={styles.secondaryButtonText}>
-                Ingresar Manualmente
-              </ThemedText>
             </Pressable>
           </View>
 
@@ -288,23 +322,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   buttonText: {
     color: EventuColors.white,
     fontSize: 17,
-    fontWeight: '600',
-  },
-  secondaryButton: {
-    paddingVertical: 18,
-    borderRadius: Radius.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: EventuColors.hotPink,
-    backgroundColor: 'transparent',
-  },
-  secondaryButtonText: {
-    color: EventuColors.hotPink,
-    fontSize: 16,
     fontWeight: '600',
   },
   privacyText: {

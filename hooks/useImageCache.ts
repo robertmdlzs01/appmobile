@@ -18,7 +18,7 @@ export function useImageCache(imageUri: string | null): ImageCacheInfo {
       return;
     }
 
-    if (imageUri.startsWith('file://')) {
+    if (imageUri.startsWith('file:
       setCachedUri(imageUri);
       return;
     }

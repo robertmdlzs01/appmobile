@@ -34,9 +34,7 @@ export interface EventsQueryParams {
 }
 
 export class EventModel {
-  /**
-   * Obtiene eventos con filtros opcionales
-   */
+  
   static async getEvents(params?: EventsQueryParams): Promise<Event[]> {
     try {
       let query = `
@@ -123,9 +121,7 @@ export class EventModel {
     }
   }
 
-  /**
-   * Obtiene un evento por ID
-   */
+  
   static async getEventById(id: string): Promise<Event | null> {
     try {
       const [rows] = await pool.execute(
@@ -173,9 +169,7 @@ export class EventModel {
     }
   }
 
-  /**
-   * Obtiene eventos destacados
-   */
+  
   static async getFeaturedEvents(limit: number = 10): Promise<Event[]> {
     try {
       const [rows] = await pool.execute(
@@ -219,9 +213,7 @@ export class EventModel {
     }
   }
 
-  /**
-   * Cuenta el total de eventos (para paginación)
-   */
+  
   static async countEvents(params?: EventsQueryParams): Promise<number> {
     try {
       let query = 'SELECT COUNT(*) as total FROM events WHERE 1=1';
