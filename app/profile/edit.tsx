@@ -7,9 +7,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useImagePicker } from '@/hooks/useImagePicker';
 import { useSafeAreaHeaderPadding } from '@/hooks/useSafeAreaInsets';
+import { useLocation } from '@/hooks/useLocation';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useState, useEffect } from 'react';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import {
   Alert,
   Image,
@@ -21,6 +23,7 @@ import {
   Text,
   TextInput,
   View,
+  ActivityIndicator,
 } from 'react-native';
 
 export default function EditProfileScreen() {
@@ -29,12 +32,12 @@ export default function EditProfileScreen() {
   const { user, updateUser } = useAuth();
   const { showImagePickerOptions, loading: imageLoading } = useImagePicker();
   const { paddingTop: safeAreaPaddingTop } = useSafeAreaHeaderPadding();
+  const { location: userLocation } = useLocation();
 
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
   const [phone, setPhone] = useState('');
   const [documentId, setDocumentId] = useState('');
-  const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');
   const [location, setLocation] = useState('');
   const [birthDate, setBirthDate] = useState('');
@@ -46,8 +49,21 @@ export default function EditProfileScreen() {
       setName(user.name || '');
       setEmail(user.email || '');
       setProfileImage(user.profileImage || null);
+      // @ts-ignore - phone and bio might exist in user
+      if (user.phone) setPhone(user.phone);
+      // @ts-ignore
+      if (user.bio) setBio(user.bio);
+      // @ts-ignore
+      if (user.location) setLocation(user.location);
     }
   }, [user]);
+
+  // Cargar ubicación automáticamente desde el hook de ubicación
+  useEffect(() => {
+    if (userLocation?.fullAddress && !location) {
+      setLocation(userLocation.fullAddress);
+    }
+  }, [userLocation, location]);
 
   const bg = colorScheme === 'dark' ? '#1f1f1f' : '#f5f5f5';
   const border = colorScheme === 'dark' ? '#2a2a2a' : '#e0e0e0';
@@ -72,13 +88,30 @@ export default function EditProfileScreen() {
 
     setLoading(true);
     try {
-      const updateData: { name: string; email: string; profileImage?: string } = {
+      const updateData: any = {
         name: name.trim(),
         email: email.trim(),
+        profileImage: profileImage || null,
       };
 
-      if (profileImage && profileImage.trim()) {
-        updateData.profileImage = profileImage;
+      if (phone.trim()) {
+        updateData.phone = phone.trim();
+      }
+
+      if (bio.trim()) {
+        updateData.bio = bio.trim();
+      }
+
+      if (location.trim()) {
+        updateData.location = location.trim();
+      }
+
+      if (documentId.trim()) {
+        updateData.documentId = documentId.trim();
+      }
+
+      if (birthDate.trim()) {
+        updateData.birthDate = birthDate.trim();
       }
 
       await updateUser(updateData);
@@ -146,48 +179,113 @@ export default function EditProfileScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled">
           {}
-          <ThemedView style={styles.avatarSection}>
+          <View style={styles.avatarSection}>
             <Pressable
               onPress={handleAvatarPress}
               disabled={imageLoading}
               style={styles.avatarPressable}
             >
-              {profileImage ? (
-                <View style={styles.avatarImageContainer}>
-                  <Image source={{ uri: profileImage }} style={styles.avatarImage} />
-                  <View style={styles.editAvatarButton}>
-                    <View style={styles.editAvatarIcon}>
-                      <IconSymbol
-                        name={imageLoading ? 'hourglass' : 'camera.fill'}
-                        size={16}
-                        color={EventuColors.white}
-                      />
-                    </View>
+              {imageLoading ? (
+                <View style={styles.profileImageContainer}>
+                  <ActivityIndicator size="large" color={EventuColors.hotPink} />
+                </View>
+              ) : profileImage ? (
+                <View style={styles.profileImageContainer}>
+                  <Image source={{ uri: profileImage }} style={styles.profileImage} />
+                  <LinearGradient
+                    colors={['transparent', 'rgba(0,0,0,0.3)']}
+                    style={styles.imageOverlay}
+                  />
+                  <View style={styles.editImageBadge}>
+                    <MaterialIcons 
+                      name="camera-alt" 
+                      size={18} 
+                      color={EventuColors.white} 
+                    />
                   </View>
                 </View>
               ) : (
-                <>
-                  <LinearGradient
-                    colors={[EventuColors.hotPink, EventuColors.magenta]}
-                    style={styles.avatarContainer}>
-                    <IconSymbol name="person.fill" size={40} color={EventuColors.white} />
-                  </LinearGradient>
-                  <View style={styles.editAvatarButton}>
-                    <View style={styles.editAvatarIcon}>
-                      <IconSymbol
-                        name={imageLoading ? 'hourglass' : 'camera.fill'}
-                        size={16}
-                        color={EventuColors.white}
-                      />
-                    </View>
+                <LinearGradient
+                  colors={[EventuColors.hotPink, EventuColors.magenta]}
+                  style={styles.profileImageContainer}
+                >
+                  <MaterialIcons 
+                    name="person" 
+                    size={56} 
+                    color={EventuColors.white} 
+                  />
+                  <View style={styles.editImageBadge}>
+                    <MaterialIcons 
+                      name="camera-alt" 
+                      size={18} 
+                      color={EventuColors.white} 
+                    />
                   </View>
-                </>
+                </LinearGradient>
               )}
             </Pressable>
-            <ThemedText style={styles.avatarHint}>
-              {imageLoading ? 'Procesando...' : 'Toca para cambiar foto'}
+
+            <View style={styles.imageActionsContainer}>
+              <Pressable
+                style={styles.imageActionButton}
+                onPress={handleAvatarPress}
+                disabled={imageLoading}
+              >
+                <LinearGradient
+                  colors={[EventuColors.hotPink, EventuColors.magenta]}
+                  style={styles.imageActionGradient}
+                >
+                  <MaterialIcons 
+                    name={imageLoading ? 'hourglass-empty' : 'camera-alt'} 
+                    size={20} 
+                    color={EventuColors.white} 
+                  />
+                  <ThemedText style={styles.imageActionText}>
+                    {profileImage ? 'Cambiar' : 'Agregar'}
+                  </ThemedText>
+                </LinearGradient>
+              </Pressable>
+
+              {profileImage && (
+                <Pressable
+                  style={styles.removeImageButton}
+                  onPress={() => {
+                    Alert.alert(
+                      'Eliminar foto de perfil',
+                      '¿Estás seguro de que deseas eliminar tu foto de perfil?',
+                      [
+                        { text: 'Cancelar', style: 'cancel' },
+                        {
+                          text: 'Eliminar',
+                          style: 'destructive',
+                          onPress: () => setProfileImage(null),
+                        },
+                      ]
+                    );
+                  }}
+                  disabled={imageLoading}
+                >
+                  <MaterialIcons 
+                    name="delete-outline" 
+                    size={20} 
+                    color={EventuColors.error} 
+                  />
+                  <ThemedText style={styles.removeImageText}>
+                    Eliminar
+                  </ThemedText>
+                </Pressable>
+              )}
+            </View>
+
+            <ThemedText style={styles.imageHint}>
+              {imageLoading 
+                ? 'Procesando imagen...' 
+                : profileImage 
+                ? 'Toca la foto para cambiarla' 
+                : 'Agrega una foto de perfil para personalizar tu cuenta'
+              }
             </ThemedText>
-          </ThemedView>
+          </View>
 
           {}
           <ThemedView style={styles.form}>
@@ -211,31 +309,6 @@ export default function EditProfileScreen() {
                   value={name}
                   onChangeText={setName}
                   autoCapitalize="words"
-                />
-              </View>
-            </ThemedView>
-
-            <ThemedView style={styles.inputContainer}>
-              <ThemedText style={styles.label}>
-                Nombre de usuario <Text style={styles.required}>*</Text>
-              </ThemedText>
-              <View
-                style={[
-                  styles.inputWrapper,
-                  {
-                    backgroundColor: EventuColors.white,
-                    borderColor: EventuColors.lightGray,
-                  },
-                ]}>
-                <Text style={styles.usernamePrefix}>@</Text>
-                <TextInput
-                  style={[styles.input, { color: EventuColors.black }]}
-                  placeholder="username"
-                  placeholderTextColor={EventuColors.mediumGray}
-                  value={username}
-                  onChangeText={setUsername}
-                  autoCapitalize="none"
-                  autoComplete="username"
                 />
               </View>
             </ThemedView>
@@ -447,49 +520,92 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   avatarPressable: {
-    marginBottom: 12,
-    position: 'relative',
+    marginBottom: 20,
   },
-  avatarContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: Radius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadows.md,
-  },
-  avatarImageContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: Radius.full,
+  profileImageContainer: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    borderWidth: 4,
+    borderColor: EventuColors.white,
     overflow: 'hidden',
-    ...Shadows.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+    ...Shadows.lg,
+    shadowColor: EventuColors.hotPink + '66',
+    elevation: 8,
   },
-  avatarImage: {
+  profileImage: {
     width: '100%',
     height: '100%',
   },
-  editAvatarButton: {
+  imageOverlay: {
     position: 'absolute',
     bottom: 0,
-    right: '50%',
-    marginRight: -60,
+    left: 0,
+    right: 0,
+    height: 50,
   },
-  editAvatarIcon: {
+  editImageBadge: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
     width: 36,
     height: 36,
-    borderRadius: Radius.full,
+    borderRadius: 18,
     backgroundColor: EventuColors.hotPink,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
     borderColor: EventuColors.white,
+    ...Shadows.md,
+  },
+  imageActionsContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+  },
+  imageActionButton: {
+    borderRadius: Radius.lg,
+    overflow: 'hidden',
     ...Shadows.sm,
   },
-  avatarHint: {
+  imageActionGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  imageActionText: {
+    color: EventuColors.white,
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  removeImageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: Radius.lg,
+    borderWidth: 1.5,
+    borderColor: EventuColors.error + '40',
+    backgroundColor: EventuColors.white,
+    gap: 8,
+    ...Shadows.sm,
+  },
+  removeImageText: {
+    color: EventuColors.error,
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  imageHint: {
     fontSize: 13,
     color: EventuColors.mediumGray,
-    marginTop: 8,
+    textAlign: 'center',
+    paddingHorizontal: 20,
+    lineHeight: 18,
   },
   form: {
     paddingHorizontal: 20,
@@ -506,12 +622,6 @@ const styles = StyleSheet.create({
   },
   required: {
     color: EventuColors.error,
-  },
-  usernamePrefix: {
-    fontSize: 16,
-    color: EventuColors.mediumGray,
-    fontWeight: '500',
-    marginRight: 4,
   },
   inputWrapper: {
     flexDirection: 'row',

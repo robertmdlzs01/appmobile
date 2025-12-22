@@ -22,6 +22,7 @@ import {
   View,
   ActivityIndicator,
 } from 'react-native';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -75,6 +76,26 @@ export default function CompleteProfileScreen() {
     }
   };
 
+  const handleRemoveImage = () => {
+    Alert.alert(
+      'Eliminar foto de perfil',
+      '¿Estás seguro de que deseas eliminar tu foto de perfil?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: () => {
+            setProfileImage(null);
+          },
+        },
+      ]
+    );
+  };
+
   const handleComplete = async () => {
     if (!fullName.trim()) {
       Alert.alert('Error', 'Por favor ingresa tu nombre completo');
@@ -95,9 +116,8 @@ export default function CompleteProfileScreen() {
         updateData.bio = bio.trim();
       }
 
-      if (profileImage) {
-        updateData.profileImage = profileImage;
-      }
+      // Si profileImage es null, lo establecemos explícitamente para eliminar la imagen
+      updateData.profileImage = profileImage || null;
 
       if (user) {
         await updateUser(updateData);
@@ -149,44 +169,86 @@ export default function CompleteProfileScreen() {
             </View>
 
             {}
-            <Pressable 
-              style={styles.imageContainer} 
-              onPress={handleSelectImage}
-              disabled={imageLoading}
-            >
-              {imageLoading ? (
-                <View style={styles.imagePlaceholder}>
-                  <ActivityIndicator size="large" color={EventuColors.hotPink} />
-                </View>
-              ) : profileImage ? (
-                <View style={styles.imageWrapper}>
-                  <Image source={{ uri: profileImage }} style={styles.profileImage} />
-                  <View style={styles.editImageBadge}>
-                    <IconSymbol 
-                      name={imageLoading ? 'hourglass' : 'camera.fill'} 
-                      size={16} 
+            <View style={styles.imageSection}>
+              <Pressable 
+                style={styles.imageContainer} 
+                onPress={handleSelectImage}
+                disabled={imageLoading}
+              >
+                {imageLoading ? (
+                  <View style={styles.profileImageContainer}>
+                    <ActivityIndicator size="large" color={EventuColors.hotPink} />
+                  </View>
+                ) : profileImage ? (
+                  <View style={styles.profileImageContainer}>
+                    <Image source={{ uri: profileImage }} style={styles.profileImage} />
+                    <LinearGradient
+                      colors={['transparent', 'rgba(0,0,0,0.3)']}
+                      style={styles.imageOverlay}
+                    />
+                  </View>
+                ) : (
+                  <LinearGradient
+                    colors={[EventuColors.hotPink, EventuColors.magenta]}
+                    style={styles.profileImageContainer}
+                  >
+                    <MaterialIcons 
+                      name="person" 
+                      size={56} 
                       color={EventuColors.white} 
                     />
-                  </View>
-                </View>
-              ) : (
-                <LinearGradient
-                  colors={[EventuColors.hotPink + '15', EventuColors.magenta + '15']} 
-                  style={styles.imagePlaceholder}
+                  </LinearGradient>
+                )}
+              </Pressable>
+
+              <View style={styles.imageActionsContainer}>
+                <Pressable
+                  style={styles.imageActionButton}
+                  onPress={handleSelectImage}
+                  disabled={imageLoading}
                 >
-                  <View style={styles.imagePlaceholderInner}>
-                    <IconSymbol 
-                      name={imageLoading ? 'hourglass' : 'camera.fill'} 
-                      size={32} 
-                      color={EventuColors.hotPink} 
+                  <LinearGradient
+                    colors={[EventuColors.hotPink, EventuColors.magenta]}
+                    style={styles.imageActionGradient}
+                  >
+                    <MaterialIcons 
+                      name={imageLoading ? 'hourglass-empty' : 'camera-alt'} 
+                      size={20} 
+                      color={EventuColors.white} 
                     />
-                    <ThemedText style={styles.imagePlaceholderLabel}>
-                      Agregar Foto
+                    <ThemedText style={styles.imageActionText}>
+                      {profileImage ? 'Cambiar' : 'Agregar'}
                     </ThemedText>
-                  </View>
-                </LinearGradient>
-              )}
-            </Pressable>
+                  </LinearGradient>
+                </Pressable>
+
+                {profileImage && (
+                  <Pressable
+                    style={styles.removeImageButton}
+                    onPress={handleRemoveImage}
+                    disabled={imageLoading}
+                  >
+                    <MaterialIcons 
+                      name="delete-outline" 
+                      size={20} 
+                      color={EventuColors.error} 
+                    />
+                    <ThemedText style={styles.removeImageText}>
+                      Eliminar
+                    </ThemedText>
+                  </Pressable>
+                )}
+              </View>
+
+              <ThemedText style={styles.imageHint}>
+                {imageLoading 
+                  ? 'Procesando imagen...' 
+                  : profileImage 
+                  ? 'Toca la foto para cambiarla' 
+                  : 'Agrega una foto de perfil para personalizar tu cuenta'
+                }
+              </ThemedText>
+            </View>
 
             {}
             <View style={styles.form}>
@@ -336,53 +398,85 @@ const styles = StyleSheet.create({
     opacity: 0.7,
     lineHeight: 24,
   },
-  imageContainer: {
-    alignSelf: 'center',
-    marginBottom: 32,
+  imageSection: {
+    alignItems: 'center',
+    marginBottom: 40,
   },
-  imageWrapper: {
-    position: 'relative',
+  imageContainer: {
+    marginBottom: 20,
+  },
+  profileImageContainer: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    borderWidth: 4,
+    borderColor: EventuColors.white,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Shadows.lg,
+    shadowColor: EventuColors.hotPink + '66',
+    elevation: 8,
   },
   profileImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 3,
-    borderColor: EventuColors.hotPink,
+    width: '100%',
+    height: '100%',
+    borderRadius: 66,
   },
-  editImageBadge: {
+  imageOverlay: {
     position: 'absolute',
     bottom: 0,
+    left: 0,
     right: 0,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: EventuColors.hotPink,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: EventuColors.white,
-    ...Shadows.md,
+    height: 50,
+    borderBottomLeftRadius: 66,
+    borderBottomRightRadius: 66,
   },
-  imagePlaceholder: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 2,
-    borderStyle: 'dashed',
-    borderColor: EventuColors.hotPink,
-    justifyContent: 'center',
-    alignItems: 'center',
+  imageActionsContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+  },
+  imageActionButton: {
+    borderRadius: Radius.lg,
     overflow: 'hidden',
+    ...Shadows.sm,
   },
-  imagePlaceholderInner: {
+  imageActionGradient: {
+    flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
     gap: 8,
   },
-  imagePlaceholderLabel: {
-    fontSize: 14,
+  imageActionText: {
+    color: EventuColors.white,
+    fontSize: 15,
     fontWeight: '600',
-    color: EventuColors.hotPink,
+  },
+  removeImageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: Radius.lg,
+    borderWidth: 1.5,
+    borderColor: EventuColors.error + '40',
+    backgroundColor: EventuColors.white,
+    gap: 8,
+    ...Shadows.sm,
+  },
+  removeImageText: {
+    color: EventuColors.error,
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  imageHint: {
+    fontSize: 13,
+    color: EventuColors.mediumGray,
+    textAlign: 'center',
+    paddingHorizontal: 20,
+    lineHeight: 18,
   },
   form: {
     gap: 20,

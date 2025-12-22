@@ -50,6 +50,14 @@ const MAPPING = {
   'creditcard.fill': 'credit-card',
   'questionmark.circle.fill': 'help-outline',
   'doc.text.fill': 'description',
+  'location.fill': 'location-on',
+  'map.fill': 'map',
+  'sparkles': 'auto-awesome',
+  'car.fill': 'directions-car',
+  'text.alignleft': 'format-align-left',
+  'phone.fill': 'phone',
+  'person.text.rectangle.fill': 'badge',
+  'camera.fill': 'camera-alt',
 } as IconMapping;
 
 export function IconSymbol({
@@ -64,5 +72,10 @@ export function IconSymbol({
   style?: StyleProp<TextStyle>;
   weight?: SymbolWeight;
 }) {
-  return <MaterialIcons color={color} size={size} name={MAPPING[name]} style={style} />;
+  const iconName = MAPPING[name];
+  if (!iconName) {
+    console.warn(`Icon "${name}" not found in mapping, using "help-outline" as fallback`);
+    return <MaterialIcons color={color} size={size} name="help-outline" style={style} />;
+  }
+  return <MaterialIcons color={color} size={size} name={iconName} style={style} />;
 }
