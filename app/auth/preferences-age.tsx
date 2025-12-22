@@ -9,6 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import Animated, {
   useAnimatedStyle,
@@ -24,6 +25,7 @@ export default function PreferencesAgeScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const scaleAnim = useSharedValue(1);
+  const insets = useSafeAreaInsets();
 
   const handleDecrease = () => {
     if (age > MIN_AGE) {
@@ -161,7 +163,7 @@ export default function PreferencesAgeScreen() {
         </ScrollView>
 
         {}
-        <View style={styles.bottomContainer}>
+        <View style={[styles.bottomContainer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
           <Pressable
             style={({ pressed }) => [
               styles.button,
@@ -316,7 +318,6 @@ const styles = StyleSheet.create({
   },
   bottomContainer: {
     padding: 20,
-    paddingBottom: 40,
     backgroundColor: 'transparent',
   },
   button: {

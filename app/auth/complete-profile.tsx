@@ -23,6 +23,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function CompleteProfileScreen() {
   const { user, updateUser } = useAuth();
@@ -34,6 +35,7 @@ export default function CompleteProfileScreen() {
   const [loading, setLoading] = useState(false);
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
+  const insets = useSafeAreaInsets();
 
   const bg = colorScheme === 'dark' ? '#1f1f1f' : '#f5f5f5';
   const border = colorScheme === 'dark' ? '#2a2a2a' : '#e0e0e0';
@@ -125,7 +127,7 @@ export default function CompleteProfileScreen() {
         >
           <ScrollView
             style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom, 40) + 20 }]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
@@ -310,7 +312,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 20,
     paddingTop: 60,
-    paddingBottom: 40,
+    paddingBottom: 20,
   },
   header: {
     marginBottom: 24,

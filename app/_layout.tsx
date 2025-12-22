@@ -12,6 +12,7 @@ import { AppContextProvider } from '@/contexts/AppContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useGlobalScreenCaptureBlock } from '@/hooks/useScreenCapture';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -31,11 +32,25 @@ function RootLayoutNav() {
   const segments = useSegments();
   const router = useRouter();
   const colorScheme = useColorScheme();
+  const [needsOnboarding, setNeedsOnboarding] = useState<boolean | null>(null);
 
   useGlobalScreenCaptureBlock(true);
 
   useEffect(() => {
-    if (isLoading) return;
+    // Verificar si el usuario necesita completar el onboarding
+    const checkOnboardingStatus = async () => {
+      try {
+        const needsOnboardingFlag = await AsyncStorage.getItem('@eventu_needs_onboarding');
+        setNeedsOnboarding(needsOnboardingFlag === 'true');
+      } catch (error) {
+        setNeedsOnboarding(false);
+      }
+    };
+    checkOnboardingStatus();
+  }, []);
+
+  useEffect(() => {
+    if (isLoading || needsOnboarding === null) return;
 
     const inAuthGroup = 
       segments[0] === 'welcome' || 
@@ -44,21 +59,35 @@ function RootLayoutNav() {
     const inAuthFlow = segments[0] === 'auth'; 
     const inTabs = segments[0] === '(tabs)';
 
+    // Verificar el flag nuevamente cuando cambian los segmentos (especialmente cuando navega a tabs)
+    const recheckOnboarding = async () => {
+      try {
+        const needsOnboardingFlag = await AsyncStorage.getItem('@eventu_needs_onboarding');
+        const currentNeedsOnboarding = needsOnboardingFlag === 'true';
+        if (currentNeedsOnboarding !== needsOnboarding) {
+          setNeedsOnboarding(currentNeedsOnboarding);
+        }
+      } catch (error) {
+        // Ignorar errores
+      }
+    };
+    recheckOnboarding();
+
     if (!isAuthenticated && !inAuthGroup && !inAuthFlow) {
       router.replace('/welcome');
     } 
-    else if (isAuthenticated && inAuthGroup) {
+    else if (isAuthenticated && inAuthGroup && !needsOnboarding) {
       // Si el usuario está autenticado y trata de acceder a welcome/login/register, redirigir a tabs
       router.replace('/(tabs)');
     } 
-    else if (isAuthenticated && inAuthFlow) {
-      // Si el usuario está autenticado y trata de acceder a las pantallas de registro/onboarding, redirigir a tabs
+    else if (isAuthenticated && inAuthFlow && !needsOnboarding) {
+      // Si el usuario está autenticado y NO necesita onboarding, redirigir a tabs
       router.replace('/(tabs)');
     }
     else if (!isAuthenticated && inTabs) {
       router.replace('/welcome');
     }
-  }, [isAuthenticated, isLoading, segments]);
+  }, [isAuthenticated, isLoading, segments, needsOnboarding]);
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>

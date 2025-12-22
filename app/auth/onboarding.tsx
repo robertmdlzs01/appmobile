@@ -13,6 +13,7 @@ import {
   View,
   Image,
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { OptimizedImage } from '@/components/optimized-image';
 
 const { width } = Dimensions.get('window');
@@ -44,6 +45,7 @@ const slides = [
 export default function OnboardingScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
+  const insets = useSafeAreaInsets();
 
   const handleNext = () => {
     if (currentIndex < slides.length - 1) {
@@ -88,7 +90,7 @@ export default function OnboardingScreen() {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <Pressable style={styles.skipButton} onPress={handleSkip}>
         <ThemedText style={styles.skipText}>Omitir</ThemedText>
       </Pressable>
@@ -149,7 +151,7 @@ export default function OnboardingScreen() {
           </LinearGradient>
         </Pressable>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -223,7 +225,7 @@ const styles = StyleSheet.create({
     right: 0,
     paddingHorizontal: 20,
     paddingTop: 20,
-    paddingBottom: 50,
+    paddingBottom: 20,
     backgroundColor: EventuColors.white,
   },
   pagination: {

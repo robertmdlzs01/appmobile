@@ -10,6 +10,7 @@ import { useLocation } from '@/hooks/useLocation';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   ActivityIndicator,
   Alert,
@@ -23,7 +24,7 @@ import {
 export default function LocationAccessScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
-  const { autoLogin } = useAuth();
+  const { user } = useAuth();
   const { requestPermissions, getCurrentLocation } = useLocation();
   const [loading, setLoading] = useState(false);
 
@@ -60,11 +61,8 @@ export default function LocationAccessScreen() {
         await getCurrentLocation();
       }
 
-      await autoLogin({
-        id: Date.now().toString(),
-        email: 'usuario@eventu.com',
-        name: 'Usuario Eventu',
-      });
+      // Limpiar el flag de onboarding completado
+      await AsyncStorage.removeItem('@eventu_needs_onboarding');
 
       // Reemplazar completamente la navegación para que no pueda volver al proceso de registro
       // Usar replace para eliminar la ruta actual del historial
@@ -88,11 +86,9 @@ export default function LocationAccessScreen() {
 
   const handleSkipLocation = async () => {
     try {
-      await autoLogin({
-        id: Date.now().toString(),
-        email: 'usuario@eventu.com',
-        name: 'Usuario Eventu',
-      });
+      // Limpiar el flag de onboarding completado
+      await AsyncStorage.removeItem('@eventu_needs_onboarding');
+      
       // Reemplazar completamente la navegación para que no pueda volver al proceso de registro
       router.replace('/(tabs)');
     } catch (error) {

@@ -12,6 +12,7 @@ import Animated, {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Path, Svg } from 'react-native-svg';
 
 const { width } = Dimensions.get('window');
@@ -64,7 +65,7 @@ export default function WelcomeScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <LinearGradient
         colors={[EventuColors.magenta, EventuColors.hotPink, EventuColors.violet]}
         start={{ x: 0, y: 0 }}
@@ -152,7 +153,7 @@ export default function WelcomeScreen() {
           </Animated.View>
         </Animated.View>
       </LinearGradient>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -189,11 +190,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   logoContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 30,
+    width: 180,
+    height: 180,
+    borderRadius: 45,
     backgroundColor: EventuColors.white,
-    padding: 20,
+    padding: 30,
     marginBottom: 20,
     shadowColor: EventuColors.black,
     shadowOffset: { width: 0, height: 8 },

@@ -9,6 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 const genders = [
@@ -22,6 +23,7 @@ export default function PreferencesGenderScreen() {
   const [selectedGender, setSelectedGender] = useState<string>('');
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
+  const insets = useSafeAreaInsets();
 
   const handleNext = () => {
     if (selectedGender) {
@@ -133,7 +135,7 @@ export default function PreferencesGenderScreen() {
         </ScrollView>
 
         {}
-        <View style={styles.bottomContainer}>
+        <View style={[styles.bottomContainer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
           <Pressable
             style={({ pressed }) => [
               styles.button,
@@ -254,7 +256,6 @@ const styles = StyleSheet.create({
   },
   bottomContainer: {
     padding: 20,
-    paddingBottom: 40,
     backgroundColor: 'transparent',
   },
   button: {

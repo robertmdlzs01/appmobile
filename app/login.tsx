@@ -14,6 +14,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Svg, Path } from 'react-native-svg';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import Animated, {
@@ -139,7 +140,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <LinearGradient
         colors={[EventuColors.magenta, EventuColors.hotPink, EventuColors.violet]}
         start={{ x: 0, y: 0 }}
@@ -273,13 +274,18 @@ export default function LoginScreen() {
                       <MaterialIcons name="check" size={14} color={EventuColors.white} />
                     )}
                   </View>
-                  <ThemedText style={styles.rememberMeText}>Recordarme</ThemedText>
+                  <ThemedText style={styles.rememberMeText} numberOfLines={1}>
+                    Recordarme
+                  </ThemedText>
                 </Pressable>
                 <Pressable 
                   onPress={() => router.push('/auth/new-password')}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  style={styles.forgotPasswordContainer}
                 >
-                  <ThemedText style={styles.forgotPasswordText}>¿Olvidaste tu contraseña?</ThemedText>
+                  <ThemedText style={styles.forgotPasswordText} numberOfLines={2}>
+                    ¿Olvidaste tu contraseña?
+                  </ThemedText>
                 </Pressable>
               </View>
 
@@ -330,7 +336,7 @@ export default function LoginScreen() {
           </View>
         </Modal>
       </LinearGradient>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -453,11 +459,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 28,
     marginTop: 8,
+    gap: 16,
+    flexWrap: 'wrap',
   },
   rememberMeRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+    flexShrink: 1,
+    maxWidth: '45%',
   },
   checkbox: {
     width: 20,
@@ -478,10 +488,17 @@ const styles = StyleSheet.create({
     color: EventuColors.black,
     fontWeight: '500',
   },
+  forgotPasswordContainer: {
+    flex: 1,
+    alignItems: 'flex-end',
+    minWidth: 150,
+    flexShrink: 1,
+  },
   forgotPasswordText: {
     fontSize: 15,
     color: EventuColors.magenta,
     fontWeight: '600',
+    textAlign: 'right',
   },
   loginButton: {
     backgroundColor: EventuColors.magenta,

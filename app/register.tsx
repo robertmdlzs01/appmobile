@@ -17,6 +17,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Svg, Path } from 'react-native-svg';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import Animated, {
@@ -210,6 +211,9 @@ export default function RegisterScreen() {
         await autoLogin(newUser);
       }
       
+      // Marcar que el usuario necesita completar el onboarding
+      await AsyncStorage.setItem('@eventu_needs_onboarding', 'true');
+      
       // Pequeño delay para suavizar la transición
       await new Promise(resolve => setTimeout(resolve, 300));
       
@@ -229,6 +233,9 @@ export default function RegisterScreen() {
         };
         
         await autoLogin(newUser);
+        
+        // Marcar que el usuario necesita completar el onboarding
+        await AsyncStorage.setItem('@eventu_needs_onboarding', 'true');
         
         await new Promise(resolve => setTimeout(resolve, 300));
         setLoading(false);
@@ -252,7 +259,7 @@ export default function RegisterScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <LinearGradient
         colors={[EventuColors.magenta, EventuColors.hotPink, EventuColors.violet]}
         start={{ x: 0, y: 0 }}
@@ -520,7 +527,7 @@ export default function RegisterScreen() {
           </View>
         </Modal>
       </LinearGradient>
-    </View>
+    </SafeAreaView>
   );
 }
 
