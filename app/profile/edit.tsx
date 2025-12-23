@@ -200,13 +200,13 @@ export default function EditProfileScreen() {
                     <MaterialIcons 
                       name="camera-alt" 
                       size={18} 
-                      color={EventuColors.white} 
-                    />
+                        color={EventuColors.white}
+                      />
                   </View>
                 </View>
               ) : (
-                <LinearGradient
-                  colors={[EventuColors.hotPink, EventuColors.magenta]}
+                  <LinearGradient
+                    colors={[EventuColors.hotPink, EventuColors.magenta]}
                   style={styles.profileImageContainer}
                 >
                   <MaterialIcons 
@@ -218,8 +218,8 @@ export default function EditProfileScreen() {
                     <MaterialIcons 
                       name="camera-alt" 
                       size={18} 
-                      color={EventuColors.white} 
-                    />
+                        color={EventuColors.white}
+                      />
                   </View>
                 </LinearGradient>
               )}

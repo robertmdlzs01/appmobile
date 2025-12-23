@@ -124,7 +124,7 @@ export default function CompleteProfileScreen() {
       }
 
       console.log('Profile completed:', updateData);
-      router.replace('/auth/location-access');
+    router.replace('/auth/location-access');
     } catch (error) {
       console.error('Error completing profile:', error);
       Alert.alert('Error', 'No se pudo completar el perfil. Intenta nuevamente.');
@@ -186,9 +186,9 @@ export default function CompleteProfileScreen() {
                       colors={['transparent', 'rgba(0,0,0,0.3)']}
                       style={styles.imageOverlay}
                     />
-                  </View>
-                ) : (
-                  <LinearGradient
+                </View>
+              ) : (
+                <LinearGradient
                     colors={[EventuColors.hotPink, EventuColors.magenta]}
                     style={styles.profileImageContainer}
                   >
@@ -219,8 +219,8 @@ export default function CompleteProfileScreen() {
                     <ThemedText style={styles.imageActionText}>
                       {profileImage ? 'Cambiar' : 'Agregar'}
                     </ThemedText>
-                  </LinearGradient>
-                </Pressable>
+                </LinearGradient>
+            </Pressable>
 
                 {profileImage && (
                   <Pressable
@@ -346,7 +346,7 @@ export default function CompleteProfileScreen() {
                 {loading ? (
                   <ActivityIndicator size="small" color={EventuColors.white} />
                 ) : (
-                  <ThemedText style={styles.buttonText}>Completar Perfil</ThemedText>
+                <ThemedText style={styles.buttonText}>Completar Perfil</ThemedText>
                 )}
               </LinearGradient>
             </Pressable>

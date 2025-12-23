@@ -14,7 +14,7 @@
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Eventu.co necesita acceso a tu ubicación para mostrarte eventos cercanos a ti.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Eventu.co necesita acceso a tu ubicación para mostrarte eventos cercanos a ti.",
-        "NSCameraUsageDescription": "Eventu.co necesita acceso a tu cámara para tomar fotos de perfil.",
+        "NSCameraUsageDescription": "Eventu.co necesita acceso a tu cámara para tomar fotos de perfil y escanear códigos QR de tickets.",
         "NSPhotoLibraryUsageDescription": "Eventu.co necesita acceso a tu galería para seleccionar fotos de perfil."
       },
       "bundleIdentifier": "com.anonymous.eventuco"
@@ -68,6 +68,12 @@
         {
           "photosPermission": "Eventu.co necesita acceso a tu galería para seleccionar fotos de perfil.",
           "cameraPermission": "Eventu.co necesita acceso a tu cámara para tomar fotos de perfil."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Eventu.co necesita acceso a tu cámara para escanear códigos QR de tickets."
         }
       ]
     ],

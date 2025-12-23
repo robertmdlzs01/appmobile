@@ -28,7 +28,7 @@ export const unstable_settings = {
 };
 
 function RootLayoutNav() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const segments = useSegments();
   const router = useRouter();
   const colorScheme = useColorScheme();
@@ -58,6 +58,18 @@ function RootLayoutNav() {
       segments[0] === 'register';
     const inAuthFlow = segments[0] === 'auth'; 
     const inTabs = segments[0] === '(tabs)';
+    const inStaffTabs = segments[0] === '(staff-tabs)';
+    const isStaff = user?.isStaff || user?.role === 'staff' || user?.role === 'admin';
+
+    // Debug: mostrar información del usuario
+    if (isAuthenticated && user) {
+      console.log('Usuario autenticado:', {
+        email: user.email,
+        role: user.role,
+        isStaff: user.isStaff,
+        currentSegment: segments[0],
+      });
+    }
 
     // Verificar el flag nuevamente cuando cambian los segmentos (especialmente cuando navega a tabs)
     const recheckOnboarding = async () => {
@@ -77,17 +89,33 @@ function RootLayoutNav() {
       router.replace('/welcome');
     } 
     else if (isAuthenticated && inAuthGroup && !needsOnboarding) {
-      // Si el usuario está autenticado y trata de acceder a welcome/login/register, redirigir a tabs
-      router.replace('/(tabs)');
+      // Si el usuario está autenticado y trata de acceder a welcome/login/register, redirigir según su rol
+      if (isStaff) {
+        router.replace('/(staff-tabs)/scanner');
+      } else {
+        router.replace('/(tabs)');
+      }
     } 
     else if (isAuthenticated && inAuthFlow && !needsOnboarding) {
-      // Si el usuario está autenticado y NO necesita onboarding, redirigir a tabs
-      router.replace('/(tabs)');
+      // Si el usuario está autenticado y NO necesita onboarding, redirigir según su rol
+      if (isStaff) {
+        router.replace('/(staff-tabs)/scanner');
+      } else {
+        router.replace('/(tabs)');
+      }
     }
-    else if (!isAuthenticated && inTabs) {
+    else if (!isAuthenticated && (inTabs || inStaffTabs)) {
       router.replace('/welcome');
     }
-  }, [isAuthenticated, isLoading, segments, needsOnboarding]);
+    else if (isAuthenticated && isStaff && inTabs) {
+      // Si es staff pero está en tabs normales, redirigir a staff-tabs
+      router.replace('/(staff-tabs)/scanner');
+    }
+    else if (isAuthenticated && !isStaff && inStaffTabs) {
+      // Si no es staff pero está en staff-tabs, redirigir a tabs
+      router.replace('/(tabs)');
+    }
+  }, [isAuthenticated, isLoading, segments, needsOnboarding, user]);
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
@@ -135,6 +163,7 @@ function RootLayoutNav() {
         <Stack.Screen name="profile/billing" options={{ headerShown: false }} />
         <Stack.Screen name="profile/billing/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="(staff-tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
       </Stack>
       <StatusBar style="auto" />

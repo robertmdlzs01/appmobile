@@ -215,17 +215,17 @@ export default function TicketsScreen() {
           const imageUrl = event?.images && event.images.length > 0 ? event.images[0] : undefined;
           
           return {
-            id: ticket.id,
+          id: ticket.id,
             eventId: ticket.eventId,
-            eventName: ticket.eventName,
-            date: ticket.date,
-            dateDisplay: ticket.dateDisplay || formatDateDisplay(ticket.date),
-            time: ticket.time,
-            venue: ticket.venue || ticket.location || 'No especificado',
-            seat: ticket.seat,
-            location: ticket.location,
-            quantity: ticket.quantity || 1,
-            status: mapStatus(ticket.status),
+          eventName: ticket.eventName,
+          date: ticket.date,
+          dateDisplay: ticket.dateDisplay || formatDateDisplay(ticket.date),
+          time: ticket.time,
+          venue: ticket.venue || ticket.location || 'No especificado',
+          seat: ticket.seat,
+          location: ticket.location,
+          quantity: ticket.quantity || 1,
+          status: mapStatus(ticket.status),
             imageUrl,
           };
         });
@@ -437,17 +437,17 @@ export default function TicketsScreen() {
                           const imageUrl = event?.images && event.images.length > 0 ? event.images[0] : undefined;
                           
                           return {
-                            id: ticket.id,
+                          id: ticket.id,
                             eventId: ticket.eventId,
-                            eventName: ticket.eventName,
-                            date: ticket.date,
-                            dateDisplay: ticket.dateDisplay || formatDateDisplay(ticket.date),
-                            time: ticket.time,
-                            venue: ticket.venue || ticket.location || 'No especificado',
-                            seat: ticket.seat,
-                            location: ticket.location,
-                            quantity: ticket.quantity || 1,
-                            status: mapStatus(ticket.status),
+                          eventName: ticket.eventName,
+                          date: ticket.date,
+                          dateDisplay: ticket.dateDisplay || formatDateDisplay(ticket.date),
+                          time: ticket.time,
+                          venue: ticket.venue || ticket.location || 'No especificado',
+                          seat: ticket.seat,
+                          location: ticket.location,
+                          quantity: ticket.quantity || 1,
+                          status: mapStatus(ticket.status),
                             imageUrl,
                           };
                         });
@@ -553,7 +553,7 @@ export default function TicketsScreen() {
                               <MaterialIcons name="place" size={14} color="rgba(255,255,255,0.9)" />
                               <Text style={styles.eventMetaText} numberOfLines={1}>{ticket.location}</Text>
                             </View>
-                          </View>
+                            </View>
                         </View>
                       </View>
 

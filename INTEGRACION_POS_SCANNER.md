@@ -4,6 +4,8 @@
 
 Este documento explica cómo funciona el sistema de lectura de códigos QR desde un lector POS (Point of Sale) para validar tickets de Eventu.co.
 
+**⚠️ Importante:** El lector POS solo necesita extraer el **ticketID** del código QR. El resto del QR (timestamp, random, counter) se ignora completamente y solo sirve para generar códigos únicos que cambian cada 10 segundos.
+
 ---
 
 ## 🔍 Formato del Código QR
@@ -36,6 +38,10 @@ AF345RS|1734567890123|abc123xyz|5
 
 ## 📤 Proceso de Escaneo y Validación
 
+### ⚠️ Importante: Solo el TicketID es Relevante
+
+**El único dato importante que el lector debe extraer del QR es el `ticketID`**. El resto del código QR (timestamp, random, counter) se ignora completamente y solo se usa para generar QR únicos que cambian cada 10 segundos.
+
 ### Paso 1: Escanear el QR
 
 Cuando el lector POS escanea el código QR, obtiene un string como:
@@ -43,13 +49,20 @@ Cuando el lector POS escanea el código QR, obtiene un string como:
 AF345RS|1734567890123|abc123xyz|5
 ```
 
-### Paso 2: Extraer el ID del Ticket
+**Estructura del QR:**
+- `AF345RS` → **TicketID** (este es el único dato importante)
+- `1734567890123` → Timestamp (se ignora)
+- `abc123xyz` → Random (se ignora)
+- `5` → Counter (se ignora)
 
-El lector debe extraer el **ID del ticket** (la primera parte antes del primer `|`):
+### Paso 2: Extraer SOLO el ID del Ticket
+
+El lector debe extraer **ÚNICAMENTE el ID del ticket** (la primera parte antes del primer `|`). El resto del código se descarta:
 
 ```javascript
 function extractTicketId(qrString) {
   // El ID del ticket es la primera parte antes del primer "|"
+  // IMPORTANTE: El resto del QR (timestamp, random, counter) se ignora completamente
   const ticketId = qrString.split('|')[0];
   return ticketId;
 }
@@ -57,11 +70,12 @@ function extractTicketId(qrString) {
 // Ejemplo:
 const qrCode = "AF345RS|1734567890123|abc123xyz|5";
 const ticketId = extractTicketId(qrCode); // Retorna: "AF345RS"
+// El resto: "1734567890123|abc123xyz|5" se descarta completamente
 ```
 
-### Paso 3: Enviar al API POS
+### Paso 3: Enviar SOLO el TicketID al API POS
 
-El lector debe hacer un **POST** al endpoint del API POS:
+El lector debe hacer un **POST** al endpoint del API POS enviando **ÚNICAMENTE el ticketID**:
 
 **URL:**
 ```
@@ -87,7 +101,12 @@ Content-Type: application/json
 
 **Donde:**
 - `collection`: Siempre debe ser `"checkintest"`
-- `filter.code`: El ID del ticket extraído del QR (ej: "AF345RS")
+- `filter.code`: **SOLO el ticketID** extraído del QR (ej: "AF345RS")
+  - ⚠️ **NO se envía el QR completo**
+  - ⚠️ **NO se envía timestamp, random ni counter**
+  - ✅ **Solo se envía el ticketID (primera parte antes del primer `|`)**
+
+El backend validará si el ticket con ese ID existe y devolverá toda la información relacionada (evento, fecha, asiento, estado de validación, etc.).
 
 ---
 
@@ -147,7 +166,8 @@ Content-Type: application/json
 
 ```javascript
 /**
- * Extrae el ID del ticket del código QR
+ * Extrae SOLO el ID del ticket del código QR
+ * IMPORTANTE: El resto del QR (timestamp, random, counter) se ignora completamente
  */
 function extractTicketId(qrString) {
   if (!qrString || typeof qrString !== 'string') {
@@ -155,20 +175,23 @@ function extractTicketId(qrString) {
   }
   
   // El ID del ticket es la primera parte antes del primer "|"
+  // El resto (timestamp|random|counter) se descarta completamente
   const parts = qrString.split('|');
   if (parts.length < 1) {
     throw new Error('Formato de QR inválido');
   }
   
+  // Retornar solo el ticketID, ignorar el resto
   return parts[0];
 }
 
 /**
  * Valida un ticket escaneado con el API POS
+ * IMPORTANTE: Solo se usa el ticketID del QR, el resto se ignora
  */
 async function validateTicketWithPOS(qrString) {
   try {
-    // 1. Extraer el ID del ticket
+    // 1. Extraer SOLO el ticketID (el resto del QR se descarta)
     const ticketId = extractTicketId(qrString);
     
     if (!ticketId) {
@@ -178,7 +201,8 @@ async function validateTicketWithPOS(qrString) {
       };
     }
     
-    // 2. Validar el ticket en el API POS
+    // 2. Validar el ticket en el API POS usando SOLO el ticketID
+    // El backend validará si el ticket existe y devolverá toda su información
     const response = await fetch('https://api-pos.eventu.co/get_data', {
       method: 'POST',
       headers: {
@@ -187,7 +211,7 @@ async function validateTicketWithPOS(qrString) {
       body: JSON.stringify({
         collection: 'checkintest',
         filter: {
-          code: ticketId
+          code: ticketId  // Solo se envía el ticketID, nada más
         }
       })
     });
@@ -461,7 +485,10 @@ if ($result['success']) {
 
 ## 🔐 Notas de Seguridad
 
-1. **Extracción Correcta del ID**: Es crítico extraer solo la primera parte antes del primer `|`. El resto del código QR puede cambiar, pero el ID del ticket siempre será el mismo.
+1. **Extracción Correcta del ID**: Es crítico extraer **SOLO la primera parte antes del primer `|`**. 
+   - El resto del código QR (timestamp, random, counter) se **ignora completamente**
+   - El ticketID es el único dato relevante para la validación
+   - El resto del QR solo sirve para generar códigos únicos que cambian cada 10 segundos
 
 2. **Validación del Formato**: Siempre validar que el QR tenga el formato correcto antes de procesarlo.
 
@@ -482,21 +509,23 @@ if ($result['success']) {
 ```
 1. Usuario muestra QR en la app móvil
    └─> QR generado: "AF345RS|1734567890123|abc123xyz|5"
+   └─> El QR cambia cada 10 segundos, pero el ticketID siempre es el mismo
 
 2. Lector POS escanea el QR
    └─> Obtiene: "AF345RS|1734567890123|abc123xyz|5"
 
-3. Lector extrae el ID del ticket
+3. Lector extrae SOLO el ticketID (lo demás se descarta)
    └─> Extrae: "AF345RS" (primera parte antes del primer "|")
+   └─> Descarta: "1734567890123|abc123xyz|5" (no se usa para nada)
 
-4. Lector hace POST al API POS
+4. Lector hace POST al API POS con SOLO el ticketID
    └─> POST https://api-pos.eventu.co/get_data
    └─> Body: {
          "collection": "checkintest",
-         "filter": { "code": "AF345RS" }
+         "filter": { "code": "AF345RS" }  // Solo el ticketID
        }
 
-5. API POS responde
+5. API POS valida el ticket por su ID y responde
    └─> Si es válido: { success: true, data: { ticket: {...} } }
    └─> Si no existe: { success: false, message: "Ticket no encontrado" }
    └─> Si ya validado: { success: false, message: "Ya validado", data: {...} }
@@ -505,6 +534,11 @@ if ($result['success']) {
    └─> ✅ Válido: Permitir entrada
    └─> ❌ Inválido: Rechazar entrada
 ```
+
+**Puntos clave:**
+- ✅ Solo el `ticketID` se extrae y se envía al API
+- ✅ El resto del QR (timestamp, random, counter) se ignora completamente
+- ✅ El backend valida el ticket por su ID y devuelve toda la información relacionada
 
 ---
 

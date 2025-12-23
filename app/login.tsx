@@ -28,7 +28,7 @@ import Animated, {
 import { Image, Modal } from 'react-native';
 
 export default function LoginScreen() {
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
@@ -120,9 +120,25 @@ export default function LoginScreen() {
     try {
       // La animación permanecerá visible durante toda la petición al servidor
       await login(email, password);
-      // Pequeño delay para suavizar la transición después de la respuesta exitosa
-      await new Promise(resolve => setTimeout(resolve, 300));
-      router.replace('/(tabs)');
+      // Pequeño delay para asegurar que el usuario se guarde en AsyncStorage
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Obtener el usuario actualizado después del login
+      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+      const userData = await AsyncStorage.getItem('@eventu_user');
+      if (userData) {
+        const parsedUser = JSON.parse(userData);
+        const isStaff = parsedUser?.isStaff || parsedUser?.role === 'staff' || parsedUser?.role === 'admin';
+        console.log('Usuario después del login:', parsedUser);
+        console.log('Es staff?', isStaff);
+        if (isStaff) {
+          router.replace('/(staff-tabs)/scanner');
+        } else {
+          router.replace('/(tabs)');
+        }
+      } else {
+        router.replace('/(tabs)');
+      }
     } catch (err: any) {
       const appError = handleApiError(err);
       setError(appError);

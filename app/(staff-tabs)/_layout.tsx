@@ -1,6 +1,6 @@
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Tabs, usePathname, useSegments } from 'expo-router';
+import { Tabs, usePathname } from 'expo-router';
 import React, { useEffect } from 'react';
 import { Dimensions, Platform, StyleSheet, View } from 'react-native';
 import Animated, {
@@ -94,15 +94,15 @@ function AnimatedIndicator({ activeIndex }: { activeIndex: number }) {
   );
 }
 
-export default function TabLayout() {
+export default function StaffTabLayout() {
   const colorScheme = useColorScheme();
   const pathname = usePathname();
-  const segments = useSegments();
 
   const getActiveIndex = () => {
-    if (pathname?.includes('tickets')) return 0;
+    if (pathname?.includes('scanner')) return 0;
+    if (pathname?.includes('history')) return 1;
     if (pathname?.includes('profile')) return 2;
-    return 1;
+    return 0;
   };
 
   const activeIndex = getActiveIndex();
@@ -117,7 +117,7 @@ export default function TabLayout() {
 
   return (
     <Tabs
-      initialRouteName="index"
+      initialRouteName="scanner"
       screenOptions={{
         tabBarActiveTintColor: EventuColors.magenta,
         tabBarInactiveTintColor: EventuColors.mediumGray,
@@ -131,7 +131,7 @@ export default function TabLayout() {
           },
         ],
         tabBarBackground: () => (
-          <View style={styles.tabBarBackground} pointerEvents="none">
+          <View style={styles.tabBarBackground}>
             <BlurView
               intensity={Platform.OS === 'ios' ? 80 : 60}
               tint="light"
@@ -151,20 +151,20 @@ export default function TabLayout() {
           minHeight: TAB_BAR_HEIGHT,
         },
         tabBarHideOnKeyboard: true,
-        tabBarAccessibilityLabel: 'Tab bar',
+        tabBarAccessibilityLabel: 'Staff Tab bar',
       }}>
       <Tabs.Screen
-        name="tickets"
+        name="scanner"
         options={{
-          title: 'Entradas',
-          tabBarIcon: ({ color, focused }) => renderTabIcon('ticket.fill', focused, color),
+          title: 'Scanner',
+          tabBarIcon: ({ color, focused }) => renderTabIcon('qrcode.viewfinder', focused, color),
         }}
       />
       <Tabs.Screen
-        name="index"
+        name="history"
         options={{
-          title: 'Eventos',
-          tabBarIcon: ({ color, focused }) => renderTabIcon('house.fill', focused, color),
+          title: 'Historial',
+          tabBarIcon: ({ color, focused }) => renderTabIcon('clock.fill', focused, color),
         }}
       />
       <Tabs.Screen
@@ -215,7 +215,6 @@ const styles = StyleSheet.create({
     borderRadius: TAB_BAR_HEIGHT / 2,
     backgroundColor: EventuColors.white,
     overflow: 'hidden',
-    pointerEvents: 'none',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -267,3 +266,4 @@ const styles = StyleSheet.create({
     }),
   },
 });
+

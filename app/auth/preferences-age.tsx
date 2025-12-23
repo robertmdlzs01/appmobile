@@ -130,7 +130,7 @@ export default function PreferencesAgeScreen() {
                 <View style={styles.sliderContainer}>
                   <View style={styles.sliderTrack}>
                     <View 
-                      style={[
+                    style={[
                         styles.sliderFill, 
                         { width: `${((age - MIN_AGE) / (MAX_AGE - MIN_AGE)) * 100}%` }
                       ]} 
@@ -151,14 +151,14 @@ export default function PreferencesAgeScreen() {
                 ]}
                 onPress={handleIncrease}
                 disabled={age === MAX_AGE}
-              >
+                      >
                 <MaterialIcons 
                   name="add" 
                   size={28} 
                   color={age === MAX_AGE ? EventuColors.lightGray : EventuColors.magenta} 
                 />
               </Pressable>
-            </View>
+                    </View>
           </View>
         </ScrollView>
 

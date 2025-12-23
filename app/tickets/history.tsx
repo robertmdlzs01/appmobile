@@ -187,7 +187,7 @@ export default function TicketHistoryScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         {}
           <View style={[styles.header, { paddingTop: safeAreaPaddingTop + 16 }]}>
-            <Pressable style={styles.iconButton} onPress={() => router.back()}>
+          <Pressable style={styles.iconButton} onPress={() => router.back()}>
             <MaterialIcons name="arrow-back" size={24} color={EventuColors.black} />
             </Pressable>
           <Text style={styles.headerTitle}>Historial de Entradas</Text>

@@ -200,15 +200,15 @@ export default function RegisterScreen() {
       // Si el servidor no respondió exitosamente, usar modo local
       if (!registerSuccess) {
         // Modo local como fallback
-        const newUser = {
-          id: `user-${Date.now()}`,
-          email: email.trim().toLowerCase(),
-          name: name.trim(),
-          role: 'user' as const,
-          isStaff: false,
-        };
-        
-        await autoLogin(newUser);
+      const newUser = {
+        id: `user-${Date.now()}`,
+        email: email.trim().toLowerCase(),
+        name: name.trim(),
+        role: 'user' as const,
+        isStaff: false,
+      };
+      
+      await autoLogin(newUser);
       }
       
       // Marcar que el usuario necesita completar el onboarding
@@ -218,7 +218,7 @@ export default function RegisterScreen() {
       await new Promise(resolve => setTimeout(resolve, 300));
       
       setLoading(false);
-      router.replace('/auth/onboarding');
+        router.replace('/auth/onboarding');
     } catch (err: any) {
       console.error('Error en registro:', err);
       
@@ -244,7 +244,7 @@ export default function RegisterScreen() {
         // Solo mostrar error si también falla el modo local
         const appError = handleApiError(err);
         setError(appError);
-        setLoading(false);
+      setLoading(false);
       }
     }
   };

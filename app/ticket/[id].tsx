@@ -296,15 +296,13 @@ export default function TicketDetailScreen() {
 
   const ticketQuantity = ticket?.quantity || 1;
   
-  // Función para parsear el asiento y obtener el número individual
   const parseSeatNumber = (seatString: string, ticketIndex: number, totalQuantity: number): string => {
     if (!seatString || totalQuantity <= 1) return seatString;
     
-    // Buscar patrones de rango como "Asiento 15-18", "15-18", "15 al 18", etc.
     const rangePatterns = [
       { pattern: /Asiento\s+(\d+)\s*[-–]\s*(\d+)/i, replace: 'Asiento' },
       { pattern: /Asiento\s+(\d+)\s+al\s+(\d+)/i, replace: 'Asiento' },
-      { pattern: /(\d+)\s*[-–]\s*(\d+)(?!\s*[a-zA-Z])/, replace: '' }, // Solo números sin texto después
+      { pattern: /(\d+)\s*[-–]\s*(\d+)(?!\s*[a-zA-Z])/, replace: '' }, 
     ];
     
     for (const { pattern, replace } of rangePatterns) {
@@ -313,21 +311,17 @@ export default function TicketDetailScreen() {
         const start = parseInt(match[1], 10);
         const end = parseInt(match[2], 10);
         if (!isNaN(start) && !isNaN(end) && start <= end && ticketIndex < (end - start + 1)) {
-          // Calcular el asiento individual para este ticket (index 0-based)
           const seatNumber = start + ticketIndex;
           
-          // Reemplazar el rango con el número individual
           if (replace) {
             return seatString.replace(pattern, `${replace} ${seatNumber}`);
           } else {
-            // Si no hay prefijo "Asiento", reemplazar solo el rango
             return seatString.replace(pattern, `${seatNumber}`);
           }
         }
       }
     }
     
-    // Si no hay rango, devolver el asiento original
     return seatString;
   };
   

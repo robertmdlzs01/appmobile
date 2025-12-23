@@ -151,7 +151,7 @@ export default function EventDetailScreen() {
       router.push(`/ticket/${ticket.id}`);
     } else {
       // Si no hay ticket, redirigir a la lista de tickets
-      router.push('/(tabs)/tickets');
+    router.push('/(tabs)/tickets');
     }
   };
 
@@ -159,7 +159,7 @@ export default function EventDetailScreen() {
     // Redirigir a la pantalla de transferencia
     if (ticket) {
       router.push(`/tickets/transfer?ticketId=${ticket.id}`);
-    } else {
+      } else {
       Alert.alert('Error', 'No se encontró un ticket para este evento');
     }
   };
@@ -240,12 +240,12 @@ export default function EventDetailScreen() {
         {}
         <View style={styles.summaryWrapper}>
           <View style={styles.summaryCard}>
-            <View style={styles.summaryTitleBlock}>
-              <Text style={styles.summaryTitle}>
-                {event.name}
-              </Text>
-              <Text style={styles.summarySubtitle}>{event.subtitle}</Text>
-            </View>
+              <View style={styles.summaryTitleBlock}>
+                <Text style={styles.summaryTitle}>
+                  {event.name}
+                </Text>
+                <Text style={styles.summarySubtitle}>{event.subtitle}</Text>
+              </View>
             
             <View style={styles.summaryMetaContainer}>
               <View style={styles.summaryMetaItem}>
@@ -261,7 +261,7 @@ export default function EventDetailScreen() {
                 <View style={styles.metaTextContainer}>
                   <Text style={styles.metaLabel}>Hora</Text>
                   <Text style={styles.metaValue}>{event.time}</Text>
-                </View>
+            </View>
               </View>
               
               <View style={styles.summaryMetaItem}>
@@ -269,7 +269,7 @@ export default function EventDetailScreen() {
                 <View style={styles.metaTextContainer}>
                   <Text style={styles.metaLabel}>Ubicación</Text>
                   <Text style={styles.metaValue}>{event.location}</Text>
-                </View>
+              </View>
               </View>
             </View>
             

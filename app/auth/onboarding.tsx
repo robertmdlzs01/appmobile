@@ -73,9 +73,9 @@ export default function OnboardingScreen() {
           cachePolicy="memory-disk"
           transition={200}
         />
-        <LinearGradient
+    <LinearGradient
           colors={[...item.gradient, 'rgba(0,0,0,0.6)']}
-          start={{ x: 0, y: 0 }}
+      start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
           style={styles.imageOverlay}
         />

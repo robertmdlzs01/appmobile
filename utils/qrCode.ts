@@ -4,9 +4,7 @@ import * as Crypto from 'expo-crypto';
 import {
   generateSecureQR,
   packageToQRData,
-  getTimeUntilNextTOTP,
-  type TicketData,
-  type EncryptedTicketPackage,
+  type TicketData
 } from './advanced-crypto';
 
 
@@ -92,6 +90,36 @@ export function parseQRCode(qrString: string): QRPayload | null {
     return null;
   }
 }
+
+// Extraer el ticketID de un código QR escaneado
+
+/**
+ * Extrae el ticketID de un código QR escaneado
+ * const qrCode = "AF345RS|1734567890123|abc123xyz|5";
+ * const ticketId = extractTicketIdFromQR(qrCode); // Retorna: "AF345RS"
+ */
+
+export function extractTicketIdFromQR(qrString: string): string | null {
+  if (!qrString || typeof qrString !== 'string') {
+    console.warn('extractTicketIdFromQR: QR string inválido');
+    return null;
+  }
+  
+  // El ticketID es la primera parte antes del primer "|"
+  const parts = qrString.split('|');
+  
+  if (parts.length < 1 || !parts[0] || parts[0].trim() === '') {
+    console.warn('extractTicketIdFromQR: Formato de QR inválido, no se pudo extraer ticketID');
+    return null;
+  }
+  
+  const ticketId = parts[0].trim();
+  
+  return ticketId;
+}
+
+
+
 
 
 function generateQRId(): string {

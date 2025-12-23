@@ -44,15 +44,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (userData && token) {
         const parsedUser = JSON.parse(userData);
-        setUser(parsedUser);
+        // Asegurar que el usuario tenga el flag isStaff correcto
+        const userWithStaff = {
+          ...parsedUser,
+          isStaff: parsedUser.role === 'staff' || parsedUser.role === 'admin',
+        };
+        setUser(userWithStaff);
         apiService.setToken(token);
         
         
         try {
           const response = await authApi.getCurrentUser();
           if (response.success && response.data) {
-            setUser(response.data.user);
-            await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(response.data.user));
+            const updatedUser = {
+              ...response.data.user,
+              isStaff: response.data.user.role === 'staff' || response.data.user.role === 'admin',
+            };
+            setUser(updatedUser);
+            await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser));
           } else {
             
             await logout();
@@ -96,46 +105,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error(response.message || 'Error al iniciar sesión');
       }
     } catch (error: any) {
-      console.error('Error en login:', error);
+      // Siempre usar modo mock si hay cualquier error (backend desconectado)
+      console.warn('Backend no disponible, usando modo mock');
       
+      const staffEmails = [
+        'staff@eventu.co',
+        'admin@eventu.co',
+        'staff@eventu.com',
+        'admin@eventu.com',
+      ];
       
-      if (error.message?.includes('Network Error') || error.message?.includes('conexión')) {
-        console.warn('Backend no disponible, usando modo mock');
-        
-        const staffEmails = [
-          'staff@eventu.co',
-          'admin@eventu.co',
-          'staff@eventu.com',
-          'admin@eventu.com',
-        ];
-        
-        let role: 'user' | 'staff' | 'admin' = 'user';
-        let isStaff = false;
-        
-        if (staffEmails.includes(email.toLowerCase())) {
-          if (email.toLowerCase().includes('admin')) {
-            role = 'admin';
-            isStaff = true;
-          } else {
-            role = 'staff';
-            isStaff = true;
-          }
+      let role: 'user' | 'staff' | 'admin' = 'user';
+      let isStaff = false;
+      
+      if (staffEmails.includes(email.toLowerCase())) {
+        if (email.toLowerCase().includes('admin')) {
+          role = 'admin';
+          isStaff = true;
+        } else {
+          role = 'staff';
+          isStaff = true;
         }
-        
-        const mockUser: User = {
-          id: `user-${Date.now()}`,
-          email: email,
-          name: email.split('@')[0] || 'Usuario',
-          profileImage: undefined,
-          role: role,
-          isStaff: isStaff,
-        };
-
-        await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(mockUser));
-        setUser(mockUser);
-      } else {
-        throw error;
       }
+      
+      // Generar nombre más amigable
+      const emailName = email.split('@')[0];
+      const displayName = emailName
+        .split(/[._-]/)
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ') || 'Usuario';
+      
+      const mockUser: User = {
+        id: `user-${Date.now()}`,
+        email: email,
+        name: displayName,
+        profileImage: undefined,
+        role: role,
+        isStaff: isStaff,
+      };
+
+      await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(mockUser));
+      setUser(mockUser);
     }
   };
 
