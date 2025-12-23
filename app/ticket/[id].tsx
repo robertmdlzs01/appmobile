@@ -94,40 +94,25 @@ export default function TicketDetailScreen() {
   
   const generateUniqueQR = (): string => {
     if (!ticket) return '';
-    
-    
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2, 9);
     const counter = generatedQRTokensRef.current.size;
-    
-    
-    
-    
-    
     let uniqueToken = `${ticket.id}|${timestamp}|${random}|${counter}`;
-    
-    
     let attempts = 0;
     while (generatedQRTokensRef.current.has(uniqueToken) && attempts < 10) {
-      
       const extraRandom = Math.random().toString(36).substring(2, 9);
       uniqueToken = `${ticket.id}|${timestamp}|${random}|${counter}|${extraRandom}|${attempts}`;
       attempts++;
     }
-    
-    
     generatedQRTokensRef.current.add(uniqueToken);
-    
-    
     if (generatedQRTokensRef.current.size > 1000) {
       const tokensArray = Array.from(generatedQRTokensRef.current);
       const tokensToKeep = tokensArray.slice(-500); 
       generatedQRTokensRef.current = new Set(tokensToKeep);
-    }
-    
+    }  
     return uniqueToken;
   };
-
+  
   useEffect(() => {
     const loadTicket = async () => {
       if (!isAuthenticated || !ticketId) {
@@ -135,7 +120,6 @@ export default function TicketDetailScreen() {
         setError('ID de ticket no válido');
         return;
       }
-
       try {
         setLoading(true);
         setError(null);

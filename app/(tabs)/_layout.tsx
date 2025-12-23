@@ -124,7 +124,12 @@ export default function TabLayout() {
         headerShown: false,
         tabBarShowLabel: false,
         tabBarButton: HapticTab,
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: [
+          styles.tabBar,
+          {
+            left: (width - TAB_BAR_WIDTH) / 2,
+          },
+        ],
         tabBarBackground: () => (
           <View style={styles.tabBarBackground}>
             <BlurView
@@ -177,7 +182,6 @@ const styles = StyleSheet.create({
   tabBar: {
     position: 'absolute',
     bottom: Platform.OS === 'ios' ? 30 : 25,
-    left: (width - TAB_BAR_WIDTH) / 2,
     width: TAB_BAR_WIDTH,
     height: TAB_BAR_HEIGHT,
     borderRadius: TAB_BAR_HEIGHT / 2,

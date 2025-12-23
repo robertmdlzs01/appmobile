@@ -118,7 +118,10 @@ export default function HomeScreen() {
     return (
       <AnimatedCard key={event.id} index={index} delay={index * 50}>
         <PressableCard
-          style={styles.eventCard}
+          style={[
+            styles.eventCard,
+            Platform.OS === 'ios' && styles.eventCardIOS,
+          ]}
           onPress={() => router.push(`/event/${event.id}`)}
           hapticFeedback={true}
         >
@@ -185,99 +188,97 @@ export default function HomeScreen() {
       />
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={[styles.backgroundGradient, { backgroundColor: colors.background }]}>
-          <View style={[styles.header, { paddingTop: safeAreaPaddingTop + 16 }]}>
-            <TouchableOpacity 
-              style={styles.notificationButton}
-              onPress={() => router.push('/notifications')}
-            >
-              <View style={[
-                styles.notificationIconContainer,
-                hasNotifications && styles.notificationIconContainerFilled
-              ]}>
-                <MaterialIcons 
-                  name={hasNotifications ? "notifications" : "notifications-none"} 
-                  size={24} 
-                  color={hasNotifications ? EventuColors.white : EventuColors.violet} 
-                />
-              </View>
-            </TouchableOpacity>
-            
-            <View style={styles.headerCenter}>
-              {currentLocation && !locationLoading && (
-                <View style={styles.headerLocationContainer}>
-                  <MaterialIcons name="location-on" size={16} color={EventuColors.violet} />
-                  <Text style={styles.headerLocationText} numberOfLines={1}>
-                    {currentLocation.fullAddress}
-                  </Text>
-                </View>
-              )}
-              {locationLoading && (
-                <View style={styles.headerLocationContainer}>
-                  <ActivityIndicator size="small" color={EventuColors.violet} />
-                  <Text style={styles.headerLocationText}>Obteniendo ubicación...</Text>
-                </View>
-              )}
-            </View>
-            
-            <TouchableOpacity 
-              style={styles.profileButton}
-              onPress={() => router.push('/(tabs)/profile')}
-            >
-              {user?.profileImage ? (
-                <Image 
-                  source={{ uri: user.profileImage }} 
-                  style={styles.profileImage}
-                />
-              ) : (
-                <View style={styles.profileIcon}>
-                  <MaterialIcons 
-                    name="account-circle" 
-                    size={32} 
-                    color={EventuColors.violet} 
-                  />
-                </View>
-              )}
-            </TouchableOpacity>
-          </View>
-
-          {/* Separador entre header y body */}
-          <View style={styles.headerSeparator}>
-            <LinearGradient
-              colors={[
-                'transparent',
-                'rgba(228, 0, 111, 0.12)',
-                'rgba(164, 46, 255, 0.12)',
-                'rgba(228, 0, 111, 0.12)',
-                'transparent'
-              ]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.separatorLine}
-            />
-          </View>
-
-          {}
-          {isAuthenticated && (
-            <View style={styles.welcomeSection}>
-              <Text style={[styles.welcomeText, { color: colors.text }]}>
-                {getUserDisplayName() ? (
-                  <>
-                    ¡Nos encanta que estes aquí, <Text style={styles.welcomeName}>{getUserDisplayName()}</Text>!
-                  </>
-                ) : (
-                  '¡Nos encanta que estes aquí!'
-                )}
-              </Text>
-              <Text style={[styles.welcomeSubtitle, { color: colors.secondaryText }]}>
-                Lo mejor esta por comenzar, experiencias que no se olvidan
-              </Text>
-            </View>
-          )}
-
           <ScrollView
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
           >
+            <View style={[styles.header, { paddingTop: safeAreaPaddingTop + 16 }]}>
+              <TouchableOpacity 
+                style={styles.notificationButton}
+                onPress={() => router.push('/notifications')}
+              >
+                <View style={[
+                  styles.notificationIconContainer,
+                  hasNotifications && styles.notificationIconContainerFilled
+                ]}>
+                  <MaterialIcons 
+                    name={hasNotifications ? "notifications" : "notifications-none"} 
+                    size={24} 
+                    color={hasNotifications ? EventuColors.white : EventuColors.violet} 
+                  />
+                </View>
+              </TouchableOpacity>
+              
+              <View style={styles.headerCenter}>
+                {currentLocation && !locationLoading && (
+                  <View style={styles.headerLocationContainer}>
+                    <MaterialIcons name="location-on" size={16} color={EventuColors.violet} />
+                    <Text style={styles.headerLocationText} numberOfLines={1}>
+                      {currentLocation.fullAddress}
+                    </Text>
+                  </View>
+                )}
+                {locationLoading && (
+                  <View style={styles.headerLocationContainer}>
+                    <ActivityIndicator size="small" color={EventuColors.violet} />
+                    <Text style={styles.headerLocationText}>Obteniendo ubicación...</Text>
+                  </View>
+                )}
+              </View>
+              
+              <TouchableOpacity 
+                style={styles.profileButton}
+                onPress={() => router.push('/(tabs)/profile')}
+              >
+                {user?.profileImage ? (
+                  <Image 
+                    source={{ uri: user.profileImage }} 
+                    style={styles.profileImage}
+                  />
+                ) : (
+                  <View style={styles.profileIcon}>
+                    <MaterialIcons 
+                      name="account-circle" 
+                      size={32} 
+                      color={EventuColors.violet} 
+                    />
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            {/* Separador entre header y body */}
+            <View style={styles.headerSeparator}>
+              <LinearGradient
+                colors={[
+                  'transparent',
+                  'rgba(228, 0, 111, 0.12)',
+                  'rgba(164, 46, 255, 0.12)',
+                  'rgba(228, 0, 111, 0.12)',
+                  'transparent'
+                ]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.separatorLine}
+              />
+            </View>
+
+            {isAuthenticated && (
+              <View style={styles.welcomeSection}>
+                <Text style={[styles.welcomeText, { color: colors.text }]}>
+                  {getUserDisplayName() ? (
+                    <>
+                      ¡Nos encanta que estes aquí, <Text style={styles.welcomeName}>{getUserDisplayName()}</Text>!
+                    </>
+                  ) : (
+                    '¡Nos encanta que estes aquí!'
+                  )}
+                </Text>
+                <Text style={[styles.welcomeSubtitle, { color: colors.secondaryText }]}>
+                  Lo mejor esta por comenzar, experiencias que no se olvidan
+                </Text>
+              </View>
+            )}
             {loading ? (
               <View style={styles.skeletonContainer}>
                 <View style={styles.skeletonSection}>
@@ -682,6 +683,10 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 8,
     marginBottom: 4,
+  },
+  eventCardIOS: {
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.7)',
   },
   eventImageContainer: {
     width: '100%',
